@@ -122,6 +122,9 @@
         <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
       </div>
 
+      <!-- Roles In Play Banner -->
+      <div id="rolesInPlayBanner" class="hidden" style="text-align:center; color:var(--text-dim); margin-bottom:15px; font-size:0.85rem; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 8px;"></div>
+
       <!-- Announcement Area -->
       <div id="announcementArea" class="hidden"></div>
 
@@ -206,17 +209,20 @@
           <p>🗳️ โหวตกำจัดคนออกจากหมู่บ้าน (ต้องได้เสียงข้างมาก)</p>
         </div>
         <div class="rule-section">
-          <h3>👥 จำนวนบทบาท</h3>
           <table class="rules-table">
-            <tr><th>คน</th><th>🔪</th><th>👨‍🌾</th><th>💉</th><th>🔍</th><th>🃏</th></tr>
-            <tr><td>4</td><td>1</td><td>1</td><td>1</td><td>1</td><td>-</td></tr>
-            <tr><td>5</td><td>1</td><td>2</td><td>1</td><td>1</td><td>-</td></tr>
-            <tr><td>6</td><td>2</td><td>2</td><td>1</td><td>1</td><td>-</td></tr>
-            <tr><td>7</td><td>2</td><td>3</td><td>1</td><td>1</td><td>-</td></tr>
-            <tr><td>8</td><td>2</td><td>3</td><td>1</td><td>1</td><td>1</td></tr>
-            <tr><td>9</td><td>3</td><td>3</td><td>1</td><td>1</td><td>1</td></tr>
-            <tr><td>10</td><td>3</td><td>3</td><td>1</td><td>1</td><td>2</td></tr>
+            <tr><th>คน</th><th>🔪</th><th>👨‍🌾</th><th>💉</th><th>🔍</th><th>🤡</th><th>อื่นๆ</th></tr>
+            <tr><td>4</td><td>1</td><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr><td>5</td><td>1</td><td>2</td><td>1</td><td>1</td><td>-</td><td>-</td></tr>
+            <tr><td>6</td><td>2</td><td>2</td><td>1</td><td>1</td><td>-</td><td>-</td></tr>
+            <tr><td>7</td><td>2</td><td>2</td><td>1</td><td>1</td><td>1</td><td>-</td></tr>
+            <tr><td>8-10</td><td>3</td><td>...</td><td>1</td><td>1</td><td>1</td><td>ตั้งค่าได้</td></tr>
           </table>
+        </div>
+        <div class="rule-section">
+          <h3>🌟 บทบาทพิเศษ (ถ้าเปิดใช้)</h3>
+          <p>🤡 <strong>ตัวตลก (Jester)</strong> — ฝ่ายอิสระ ชนะเมื่อถูกโหวตออกตอนกลางวัน</p>
+          <p>🎖️ <strong>ทหารผ่านศึก (Veteran)</strong> — ฝ่ายดี ป้องกันตัวตอนกลางคืนได้ 1 ครั้ง (คนที่มาหาจะตายทั้งหมด)</p>
+          <p>🤠 <strong>นายอำเภอ (Sheriff)</strong> — ฝ่ายดี ยิงคนตอนกลางวันได้ 1 ครั้ง ถ้ายิงคนดี ตัวเองจะตายแทน</p>
         </div>
       </div>
       <button class="btn btn-primary" id="closeRulesBtn" style="max-width:200px;margin:15px auto 0;">เข้าใจแล้ว!</button>

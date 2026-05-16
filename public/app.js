@@ -23,10 +23,11 @@ const FACTION_COLORS = { good: '#2ecc71', evil: '#e74c3c', special: '#f39c12' };
 // ================== STATE ==================
 let socket;
 let selectedAvatar = 0;
-let currentVote = null;
 let gameState = null;
 let timerInterval = null;
+let currentVote = null;
 let soundEnabled = true;
+let lastDeathSoundRound = 0;
 let lastPhase = null;
 let audioCtx = null;
 
@@ -228,9 +229,7 @@ function bindEvents() {
 
   $('playAgainBtn').onclick = () => {
     $('gameOverOverlay').classList.add('hidden');
-    if (gameState && gameState.isHost) {
-      socket.emit('returnToLobby');
-    }
+    socket.emit('returnToLobby');
   };
 
   if ($('leaveRoomBtn')) {
@@ -321,6 +320,17 @@ function renderGameState(state) {
 
   // Announcement
   renderAnnouncement(state);
+
+  // Roles in Play Banner
+  if (state.phase !== 'lobby' && state.rolesInPlay && state.rolesInPlay.length > 0) {
+    const counts = {};
+    state.rolesInPlay.forEach(r => counts[r] = (counts[r]||0)+1);
+    const roleTexts = Object.entries(counts).map(([r, c]) => `${ROLE_ICONS[r] || ''} ${getRoleNameTh(r)} x${c}`).join(' &nbsp;|&nbsp; ');
+    $('rolesInPlayBanner').innerHTML = `<strong>บทบาทในรอบนี้:</strong><br>${roleTexts}`;
+    $('rolesInPlayBanner').classList.remove('hidden');
+  } else {
+    if ($('rolesInPlayBanner')) $('rolesInPlayBanner').classList.add('hidden');
+  }
 
   // Vote section & skip button
   const canVoteDay = state.phase === 'day_vote' && state.myAlive && !state.hasConfirmedDay;
@@ -482,6 +492,11 @@ function renderAnnouncement(state) {
   const area = $('announcementArea');
   
   if (state.phase === 'day_announce' && state.killedPlayers && state.killedPlayers.length > 0) {
+    if (lastDeathSoundRound !== state.round) {
+      playDeathSound();
+      lastDeathSoundRound = state.round;
+    }
+    
     area.classList.remove('hidden');
     area.innerHTML = state.killedPlayers.map(k => `
       <div class="announcement" style="margin-bottom:10px;">
@@ -703,11 +718,7 @@ function showGameOver(data) {
     container.appendChild(div);
   });
 
-  if (gameState && gameState.isHost) {
-    $('playAgainBtn').style.display = 'inline-block';
-  } else {
-    $('playAgainBtn').style.display = 'none';
-  }
+  $('playAgainBtn').style.display = 'inline-block';
   $('gameOverOverlay').classList.remove('hidden');
 }
 
@@ -742,6 +753,17 @@ function escapeHtml(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+function playDeathSound() {
+  if (!soundEnabled) return;
+  if ('speechSynthesis' in window) {
+    const msg = new SpeechSynthesisUtterance("จุ๊กกรู๊ โดนฆ่าแล้ว");
+    msg.lang = 'th-TH';
+    msg.rate = 1.1;
+    msg.pitch = 1.2;
+    window.speechSynthesis.speak(msg);
+  }
 }
 
 // ================== START ==================
