@@ -78,7 +78,10 @@
             <label><input type="checkbox" id="settingVeteran"> 🎖️ ทหารผ่านศึก (1 คน)</label>
           </div>
           <div class="setting-item">
-            <label><input type="checkbox" id="settingSheriff"> 🤠 นายอำเภอ (1 คน)</label>
+            <label><input type="checkbox" id="settingMedium" checked> 🔮 หมอผี (คุยกับคนตายตอนกลางคืนได้)</label>
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingSheriff" checked> 🤠 นายอำเภอ (ยิงคนตอนกลางวันได้ 1 ครั้ง)</label>
           </div>
           
           <hr style="border-color: var(--border); margin: 10px 0;">
@@ -222,11 +225,24 @@
           <h3>🌟 บทบาทพิเศษ (ถ้าเปิดใช้)</h3>
           <p>🤡 <strong>ตัวตลก (Jester)</strong> — ฝ่ายอิสระ ชนะเมื่อถูกโหวตออกตอนกลางวัน</p>
           <p>🎖️ <strong>ทหารผ่านศึก (Veteran)</strong> — ฝ่ายดี ป้องกันตัวตอนกลางคืนได้ 1 ครั้ง (คนที่มาหาจะตายทั้งหมด)</p>
+          <p>🔮 <strong>หมอผี (Medium)</strong> — ฝ่ายดี แอบอ่านข้อความและคุยกับคนตายได้ในตอนกลางคืน</p>
           <p>🤠 <strong>นายอำเภอ (Sheriff)</strong> — ฝ่ายดี ยิงคนตอนกลางวันได้ 1 ครั้ง ถ้ายิงคนดี ตัวเองจะตายแทน</p>
         </div>
       </div>
       <button class="btn btn-primary" id="closeRulesBtn" style="max-width:200px;margin:15px auto 0;">เข้าใจแล้ว!</button>
     </div>
+  </div>
+
+  <!-- Countdown Overlay -->
+  <div class="modal-overlay hidden" id="countdownOverlay" style="z-index: 999; flex-direction:column; background: rgba(0,0,0,0.9);">
+    <div id="countdownText" style="font-size:8rem; font-weight:900; color:var(--accent); text-shadow:0 0 40px var(--accent); animation: popIn 0.5s ease;">3</div>
+  </div>
+
+  <!-- Death Cutscene Overlay -->
+  <div class="modal-overlay hidden" id="deathCutscene" style="z-index: 900; flex-direction:column; background: radial-gradient(circle, rgba(150,0,0,0.9) 0%, rgba(0,0,0,1) 100%);">
+    <div style="font-size:7rem; animation: float 2s infinite;">💀</div>
+    <h1 style="color:white; font-size:3rem; text-shadow:0 0 20px black; text-align:center; margin-top:20px;">มีคนตายเมื่อคืน!</h1>
+    <h2 id="deathCutsceneName" style="color:#ffcccc; font-size:2rem; margin-top:10px;"></h2>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

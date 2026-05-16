@@ -5,18 +5,18 @@ const ROLE_ICONS = {
   villager: '🧑‍🌾',
   doctor: '💉',
   detective: '🔍',
-  jester: '🃏',
   veteran: '🎖️',
-  sheriff: '🤠'
+  sheriff: '🤠',
+  medium: '🔮'
 };
 const ROLE_DESCS = {
   mafia: 'กำจัดชาวบ้านในตอนกลางคืน',
   villager: 'ตามหามาเฟียและโหวตกำจัดในตอนกลางวัน',
   doctor: 'เลือก 1 คนเพื่อป้องกันการตายในตอนกลางคืน',
-  detective: 'เลือก 1 คนเพื่อตรวจสอบว่าเป็นมาเฟียหรือไม่',
   jester: 'หลอกให้ชาวบ้านโหวตประหารตัวเองเพื่อชนะ',
   veteran: 'ป้องกันตัวในตอนกลางคืน ทุกคนที่เข้ามาหาคุณจะตายทั้งหมด!',
-  sheriff: 'ยิงคนในตอนกลางวันได้ 1 ครั้ง (ถ้ายิงคนดี ตัวเองจะตายด้วย)'
+  sheriff: 'ยิงคนในตอนกลางวันได้ 1 ครั้ง (ถ้ายิงคนดี ตัวเองจะตายด้วย)',
+  medium: 'สามารถอ่านข้อความและพูดคุยกับคนตายได้ในตอนกลางคืน'
 };
 const FACTION_COLORS = { good: '#2ecc71', evil: '#e74c3c', special: '#f39c12' };
 
@@ -176,9 +176,10 @@ function bindEvents() {
       mafiaCount: parseInt($('settingMafia').value) || 1,
       doctor: $('settingDoctor').checked,
       detective: $('settingDetective').checked,
-      jester: $('settingJester').checked,
+      jester: $('settingJester') ? $('settingJester').checked : false,
       veteran: $('settingVeteran') ? $('settingVeteran').checked : false,
       sheriff: $('settingSheriff') ? $('settingSheriff').checked : false,
+      medium: $('settingMedium') ? $('settingMedium').checked : false,
       timeDiscuss: $('timeDiscuss') ? $('timeDiscuss').value : 2,
       timeVote: $('timeVote') ? $('timeVote').value : 1,
       timeNight: $('timeNight') ? $('timeNight').value : 1
@@ -291,6 +292,15 @@ function renderGameState(state) {
     lastPhase = state.phase;
     currentVote = null;
   }
+  // Starting Countdown
+  if (state.phase === 'starting') {
+    $('countdownOverlay').classList.remove('hidden');
+    $('countdownText').textContent = state.timer || 3;
+    return; // Stop rendering other game elements during countdown
+  } else {
+    $('countdownOverlay').classList.add('hidden');
+  }
+
   const isLobby = state.phase === 'lobby';
   const isGameOver = state.phase === 'game_over';
 
@@ -380,7 +390,7 @@ function renderGameState(state) {
       $('voteTitle').textContent = '🔍 เลือกคนที่จะตรวจสอบ';
     } else if (state.myRole === 'veteran') {
       $('voteTitle').textContent = '🎖️ ทหารผ่านศึก: ป้องกันตัวหรือไม่?';
-      if (state.veteranAlert) $('voteSection').classList.add('hidden');
+      // Keeping voteSection visible for Veteran to allow toggling or viewing players
     } else {
       $('voteSection').classList.add('hidden');
     }
@@ -565,10 +575,14 @@ function renderPlayers(state) {
     const hostBadge = p.isHost ? '<span class="host-badge">👑</span>' : '';
     const voteCount = (state.dayVoteCounts && state.dayVoteCounts[p.id]) ? state.dayVoteCounts[p.id] : 0;
     const voteCountBadge = (state.phase === 'day_vote' && voteCount > 0) ? `<div class="vote-count">${voteCount}</div>` : '';
+    
+    const mafiaVoteCount = (state.mafiaVoteCounts && state.mafiaVoteCounts[p.id]) ? state.mafiaVoteCounts[p.id] : 0;
+    const mafiaVoteBadge = (state.phase === 'night_vote' && state.myRole === 'mafia' && mafiaVoteCount > 0) ? `<div class="vote-count" style="background:#e74c3c; border-color:#fff;">🔪 ${mafiaVoteCount}</div>` : '';
 
     card.innerHTML = `
       ${hostBadge}
       ${voteCountBadge}
+      ${mafiaVoteBadge}
       <div class="avatar">${AVATARS[p.avatar] || '😎'}</div>
       <div class="name">${escapeHtml(p.name)}</div>
       ${roleBadge}
@@ -745,7 +759,7 @@ function showError(message) {
 }
 
 function getRoleNameTh(role) {
-  const names = { mafia:'มาเฟีย', villager:'ชาวบ้าน', doctor:'หมอ', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ' };
+  const names = { mafia:'มาเฟีย', villager:'ชาวบ้าน', doctor:'หมอ', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ', medium:'หมอผี' };
   return names[role] || role;
 }
 

@@ -52,13 +52,14 @@ const ROLE_NAMES_TH = {
 };
 
 const FACTION_NAMES_TH = {
-  [FACTIONS.EVIL]: 'ฝ่ายร้าย',
+  [FACTIONS.EVIL]: 'ฝ่ายมาเฟีย',
   [FACTIONS.GOOD]: 'ฝ่ายดี',
   [FACTIONS.SPECIAL]: 'ฝ่ายพิเศษ'
 };
 
 const PHASES = {
   LOBBY: 'lobby',
+  STARTING: 'starting',
   NIGHT: 'night',
   NIGHT_VOTE: 'night_vote',
   DAY_ANNOUNCE: 'day_announce',
@@ -267,6 +268,18 @@ function emitGameState(room) {
   for (const [id, p] of room.players) {
     const socket = io.sockets.sockets.get(id);
     if (socket) {
+      // Mafia vote tallying for Mafia players
+      let mafiaVoteCounts = null;
+      if (p.role === ROLES.MAFIA && room.phase === PHASES.NIGHT_VOTE) {
+        mafiaVoteCounts = {};
+        for (const [voterId, targetId] of room.nightVotes) {
+          const voter = room.players.get(voterId);
+          if (voter && voter.role === ROLES.MAFIA) {
+            mafiaVoteCounts[targetId] = (mafiaVoteCounts[targetId] || 0) + 1;
+          }
+        }
+      }
+
       const payload = {
         phase: room.phase,
         round: room.round,
@@ -288,6 +301,7 @@ function emitGameState(room) {
         nightVoteCount: room.phase === PHASES.NIGHT_VOTE ? room.nightVotes.size : 0,
         dayVoteCount: room.phase === PHASES.DAY_VOTE ? room.dayVotes.size : 0,
         dayVoteCounts: room.phase === PHASES.DAY_VOTE ? getDayVoteCounts(room) : {},
+        mafiaVoteCounts: mafiaVoteCounts,
         skipVoteCount: room.phase === PHASES.DAY_VOTE ? Array.from(room.dayVotes.values()).filter(v => v === 'skip').length : 0,
         hasVoted: room.phase === PHASES.NIGHT_VOTE ? room.nightVotes.has(id) : 
                   room.phase === PHASES.DAY_VOTE ? room.dayVotes.has(id) : false,
@@ -344,11 +358,23 @@ function startGame(room, customSettings) {
     }
   }
 
-  // Start first night
-  setTimeout(() => startNight(room), 3000);
-  
-  room.phase = PHASES.NIGHT;
+  // Start starting phase with countdown
+  room.phase = PHASES.STARTING;
+  room.timer = 3;
   emitGameState(room);
+
+  let countdown = 3;
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      room.timer = countdown;
+      emitGameState(room);
+    } else {
+      clearInterval(countdownInterval);
+      startNight(room);
+    }
+  }, 1000);
+
   return true;
 }
 
