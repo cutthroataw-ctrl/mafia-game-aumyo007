@@ -171,6 +171,7 @@ function assignRoles(room, customSettings) {
   }
 
   const shuffledRoles = shuffleArray(roles);
+  room.rolesInPlay = [...shuffledRoles];
   const playerIds = Array.from(room.players.keys());
   
   playerIds.forEach((id, index) => {
@@ -263,7 +264,7 @@ function emitGameState(room) {
   for (const [id, p] of room.players) {
     const socket = io.sockets.sockets.get(id);
     if (socket) {
-      socket.emit('gameState', {
+      const payload = {
         phase: room.phase,
         round: room.round,
         players: getPublicPlayerList(room, id),
@@ -299,7 +300,9 @@ function emitGameState(room) {
         veteranAlert: room.phase === PHASES.NIGHT_VOTE && p.role === ROLES.VETERAN ? room.veteranAlerts.has(id) : false,
         veteranUsed: p.role === ROLES.VETERAN ? room.veteranUsed.has(id) : false,
         sheriffUsed: p.role === ROLES.SHERIFF ? room.sheriffUsed.has(id) : false,
-      });
+        rolesInPlay: room.rolesInPlay || []
+      };
+      socket.emit('gameState', payload);
     }
   }
 }
@@ -864,7 +867,7 @@ io.on('connection', (socket) => {
   socket.on('returnToLobby', () => {
     if (!currentRoom) return;
     const room = rooms.get(currentRoom);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room) return;
 
     room.phase = PHASES.LOBBY;
     room.gameLog = [];
