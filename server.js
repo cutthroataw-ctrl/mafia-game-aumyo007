@@ -18,9 +18,9 @@ const ROLES = {
   VILLAGER: 'villager',
   DOCTOR: 'doctor',
   DETECTIVE: 'detective',
-  JESTER: 'jester',
   VETERAN: 'veteran',
-  SHERIFF: 'sheriff'
+  SHERIFF: 'sheriff',
+  MEDIUM: 'medium'
 };
 
 const FACTIONS = {
@@ -36,7 +36,8 @@ const ROLE_FACTION = {
   [ROLES.DETECTIVE]: FACTIONS.GOOD,
   [ROLES.JESTER]: FACTIONS.SPECIAL,
   [ROLES.VETERAN]: FACTIONS.GOOD,
-  [ROLES.SHERIFF]: FACTIONS.GOOD
+  [ROLES.SHERIFF]: FACTIONS.GOOD,
+  [ROLES.MEDIUM]: FACTIONS.GOOD
 };
 
 const ROLE_NAMES_TH = {
@@ -46,7 +47,8 @@ const ROLE_NAMES_TH = {
   [ROLES.DETECTIVE]: 'นักสืบ',
   [ROLES.JESTER]: 'ตัวตลก',
   [ROLES.VETERAN]: 'ทหารผ่านศึก',
-  [ROLES.SHERIFF]: 'นายอำเภอ'
+  [ROLES.SHERIFF]: 'นายอำเภอ',
+  [ROLES.MEDIUM]: 'หมอผี'
 };
 
 const FACTION_NAMES_TH = {
@@ -150,6 +152,7 @@ function assignRoles(room, customSettings) {
     if (customSettings.jester) roles.push(ROLES.JESTER);
     if (customSettings.veteran) roles.push(ROLES.VETERAN);
     if (customSettings.sheriff) roles.push(ROLES.SHERIFF);
+    if (customSettings.medium) roles.push(ROLES.MEDIUM);
 
     const remaining = playerCount - roles.length;
     for (let i = 0; i < remaining; i++) {
@@ -891,34 +894,75 @@ io.on('connection', (socket) => {
     const player = room.players.get(socket.id);
     if (!player) return;
 
-    // Dead players can't chat during game
-    if (!player.alive && room.phase !== PHASES.LOBBY && room.phase !== PHASES.GAME_OVER) return;
+    // During lobby or game over, everyone chats together
+    if (room.phase === PHASES.LOBBY || room.phase === PHASES.GAME_OVER) {
+      io.to(currentRoom).emit('chatMessage', {
+        senderId: socket.id,
+        senderName: player.name,
+        message,
+        isMafiaChat: false,
+        timestamp: Date.now()
+      });
+      return;
+    }
 
-    // During night, only mafia can chat with each other
+    // Dead player chat (Ghost Chat)
+    if (!player.alive) {
+      const msgData = {
+        senderId: socket.id,
+        senderName: `👻 ${player.name}`,
+        message,
+        isGhostChat: true,
+        timestamp: Date.now(),
+        color: '#9e9e9e' // Grey for ghosts
+      };
+      
+      // Send to all dead players + living Mediums (only at night)
+      for (const [id, p] of room.players) {
+        if (!p.alive || (p.role === ROLES.MEDIUM && p.alive && room.phase === PHASES.NIGHT_VOTE)) {
+          io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
+        }
+      }
+      return;
+    }
+
+    // Alive player chat
     if (room.phase === PHASES.NIGHT_VOTE) {
       if (player.role === ROLES.MAFIA) {
-        // Send to mafia only
+        // Mafia chat
+        const msgData = {
+          senderId: socket.id,
+          senderName: player.name,
+          message,
+          isMafiaChat: true,
+          timestamp: Date.now()
+        };
         for (const [id, p] of room.players) {
           if (p.role === ROLES.MAFIA) {
-            const s = io.sockets.sockets.get(id);
-            if (s) {
-              s.emit('chatMessage', {
-                senderId: socket.id,
-                senderName: player.name,
-                message,
-                isMafiaChat: true,
-                timestamp: Date.now()
-              });
-            }
+            io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
+          }
+        }
+      } else if (player.role === ROLES.MEDIUM) {
+        // Medium talking to ghosts at night
+        const msgData = {
+          senderId: socket.id,
+          senderName: `🔮 หมอผี ${player.name}`,
+          message,
+          isGhostChat: true,
+          timestamp: Date.now(),
+          color: '#ba68c8' // Purple for medium
+        };
+        for (const [id, p] of room.players) {
+          if (!p.alive || (p.role === ROLES.MEDIUM && p.alive)) {
+            io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
           }
         }
       }
       return;
     }
 
-    // During day, everyone alive can chat
-    if (room.phase === PHASES.DAY_DISCUSS || room.phase === PHASES.DAY_VOTE || 
-        room.phase === PHASES.LOBBY || room.phase === PHASES.GAME_OVER) {
+    // Alive player chat during day
+    if (room.phase === PHASES.DAY_DISCUSS || room.phase === PHASES.DAY_VOTE) {
       io.to(currentRoom).emit('chatMessage', {
         senderId: socket.id,
         senderName: player.name,
