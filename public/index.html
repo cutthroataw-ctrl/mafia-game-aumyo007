@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mafia Game - เกมมาเฟีย ออนไลน์</title>
+  <meta name="description" content="เกมมาเฟียออนไลน์ เล่นได้ 4-10 คน มี 3 ฝ่าย ฝ่ายดี ฝ่ายร้าย ฝ่ายพิเศษ">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stars" id="stars"></div>
+
+  <div id="app">
+    <!-- MENU SCREEN -->
+    <div class="screen active" id="menuScreen">
+      <div class="menu-title">
+        <h1>🎭 MAFIA</h1>
+        <p>เกมมาเฟีย ออนไลน์ · เล่นได้ 4-10 คน</p>
+      </div>
+      <div class="menu-card">
+        <div class="input-group">
+          <label>ชื่อของคุณ</label>
+          <input type="text" id="playerNameInput" placeholder="ใส่ชื่อของคุณ..." maxlength="30">
+        </div>
+        <label style="font-size:0.9rem;color:var(--text-dim);margin-bottom:8px;display:block;">เลือกอวาตาร์</label>
+        <div class="avatar-select" id="avatarSelect"></div>
+        <button class="btn btn-primary" id="createRoomBtn">🏠 สร้างห้อง</button>
+        <div class="divider">หรือ</div>
+        <div class="input-group">
+          <label>รหัสห้อง</label>
+          <input type="text" id="roomCodeInput" placeholder="ใส่รหัสห้อง 5 ตัว" maxlength="5" style="text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:700;">
+        </div>
+        <button class="btn btn-secondary" id="joinRoomBtn">🚪 เข้าร่วมห้อง</button>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div class="screen" id="gameScreen">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <div class="room-code-display">
+            <small>รหัสห้อง</small>
+            <div class="code" id="roomCodeDisplay">-----</div>
+          </div>
+        </div>
+        <div class="top-bar-right">
+          <button class="icon-btn" id="rulesBtn" title="กฎเกม">📖</button>
+          <button class="icon-btn" id="soundBtn" title="เสียง">🔊</button>
+          <button class="btn btn-primary" id="startGameBtn" style="width:auto;padding:12px 24px;">🎮 เริ่มเกม</button>
+        </div>
+      </div>
+
+      <!-- Host Settings (Lobby only) -->
+      <div class="host-settings hidden" id="hostSettings">
+        <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" id="hostSettingsToggle">
+          <h4 style="margin:0;">⚙️ ตั้งค่าบทบาท</h4>
+          <span id="hostSettingsIcon">▼</span>
+        </div>
+        <div id="hostSettingsContent" style="display:none; margin-top:10px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <label><input type="checkbox" id="useCustomRoles"> เปิดใช้ตั้งค่าเอง</label>
+          </div>
+          <div class="setting-item">
+            <label>🔪 จำนวนมาเฟีย:</label>
+            <input type="number" id="settingMafia" min="1" max="5" value="2" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingDoctor" checked> 💉 หมอ (1 คน)</label>
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingDetective" checked> 🔍 นักสืบ (1 คน)</label>
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingJester"> 🃏 ตัวตลก (1 คน)</label>
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingVeteran"> 🎖️ ทหารผ่านศึก (1 คน)</label>
+          </div>
+          <div class="setting-item">
+            <label><input type="checkbox" id="settingSheriff"> 🤠 นายอำเภอ (1 คน)</label>
+          </div>
+          
+          <hr style="border-color: var(--border); margin: 10px 0;">
+          <h5 style="margin: 0 0 8px 0; color: var(--text-dim);">⏱️ ตั้งค่าเวลา (นาที)</h5>
+          
+          <div class="setting-item">
+            <label>💬 เวลาพูดคุย:</label>
+            <input type="number" id="timeDiscuss" min="1" max="10" value="2" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+          </div>
+          <div class="setting-item">
+            <label>🗳️ เวลาโหวตตอนเช้า:</label>
+            <input type="number" id="timeVote" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+          </div>
+          <div class="setting-item">
+            <label>🌙 เวลากลางคืน (มาเฟีย):</label>
+            <input type="number" id="timeNight" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+          </div>
+
+          <small style="color:var(--text-dim); display:block; margin-top:5px;">*ที่เหลือจะถูกสุ่มเป็นชาวบ้าน</small>
+        </div>
+      </div>
+
+      <!-- My Role Badge -->
+      <div class="my-role-badge hidden" id="myRoleBadge">
+        <span class="my-role-icon" id="myRoleIcon">🎭</span>
+        <span class="my-role-text" id="myRoleText">บทบาท</span>
+      </div>
+
+      <!-- Global Timer Display -->
+      <div id="globalTimerContainer" style="display:none; text-align:center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent1);">
+        <div class="timer-text" id="timerText" style="font-size: 3rem; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">00:00</div>
+        <div class="timer-bar" id="timerBarWrap" style="margin-top: 10px;">
+          <div class="timer-fill" id="timerFill" style="width:100%; background: #ffeb3b;"></div>
+        </div>
+      </div>
+
+      <!-- Phase Banner -->
+      <div class="phase-banner" id="phaseBanner">
+        <div class="phase-icon float" id="phaseIcon">🌙</div>
+        <div class="phase-title" id="phaseTitle">รอผู้เล่น...</div>
+        <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
+      </div>
+
+      <!-- Announcement Area -->
+      <div id="announcementArea" class="hidden"></div>
+
+      <!-- Vote instruction -->
+      <div class="vote-section hidden" id="voteSection">
+        <h3 id="voteTitle">เลือกเป้าหมาย</h3>
+        <button class="btn hidden" id="veteranAlertBtn" style="margin-top: 10px; background: #e91e63; color: white;">🛡️ เปิดการป้องกันตัว</button>
+      </div>
+
+      <!-- Player Grid -->
+      <div class="player-grid" id="playerGrid"></div>
+
+      <!-- Skip Buttons -->
+      <button class="skip-vote-btn hidden" id="skipVoteBtn">⏭️ ข้ามโหวต (ไม่กำจัดใคร)</button>
+      <button class="skip-vote-btn hidden" id="confirmDayVoteBtn" style="background:#2196F3; color:white; margin-top:10px;">✅ ยืนยันการโหวต</button>
+      <button class="skip-vote-btn hidden" id="skipDiscussBtn" style="background:var(--accent2); color:white;">⏩ โหวตข้ามเวลาพูดคุย</button>
+      <button class="skip-vote-btn hidden" id="confirmNightBtn" style="background:#4caf50; color:white; margin-top:10px;">✅ ยืนยันการกระทำ</button>
+
+      <!-- Chat -->
+      <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+          <span>💬 แชท</span>
+          <span id="chatLabel" style="font-size:0.8rem;color:var(--text-dim);">ทั้งหมด</span>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." maxlength="200">
+          <button id="chatSendBtn">ส่ง</button>
+        </div>
+      </div>
+
+      <!-- Game Log -->
+      <div class="game-log" id="gameLog">
+        <h3>📋 บันทึกเกม</h3>
+        <div id="logEntries"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Reveal Overlay -->
+  <div class="role-reveal hidden" id="roleReveal">
+    <div class="role-reveal-card">
+      <div class="role-icon" id="roleIcon">🎭</div>
+      <div class="role-name" id="roleName">บทบาท</div>
+      <div class="role-desc" id="roleDesc">คำอธิบาย</div>
+      <button class="btn btn-primary" id="roleOkBtn" style="max-width:200px;margin:0 auto;">เข้าใจแล้ว!</button>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div class="game-over-overlay hidden" id="gameOverOverlay">
+    <div class="game-over-card">
+      <div class="trophy">🏆</div>
+      <h2 id="winnerText">ฝ่ายดีชนะ!</h2>
+      <div class="reason" id="winReason">มาเฟียถูกกำจัดหมดแล้ว</div>
+      <div class="result-players" id="resultPlayers"></div>
+      <button class="btn btn-primary" id="playAgainBtn">🔄 เล่นอีกครั้ง (กลับไป Lobby)</button>
+      <button class="btn" id="leaveRoomBtn" style="margin-top:10px; background:#f44336; color:white;">🚪 ออกจากห้อง</button>
+    </div>
+  </div>
+
+  <!-- Rules Modal -->
+  <div class="modal-overlay hidden" id="rulesModal">
+    <div class="modal-card">
+      <h2>📖 กฎเกม</h2>
+      <div class="rules-content">
+        <div class="rule-section">
+          <h3>🎯 เป้าหมาย</h3>
+          <p><strong style="color:var(--accent-good)">ฝ่ายดี:</strong> หาและกำจัดมาเฟียให้หมด</p>
+          <p><strong style="color:var(--accent-evil)">ฝ่ายร้าย:</strong> ฆ่าฝ่ายดีจนเหลือน้อยกว่าหรือเท่ากับมาเฟีย</p>
+          <p><strong style="color:var(--accent-special)">ตัวตลก:</strong> ทำให้ตัวเองถูกโหวตออกตอนกลางวัน</p>
+        </div>
+        <div class="rule-section">
+          <h3>🌙 กลางคืน</h3>
+          <p>🔪 <strong>มาเฟีย</strong> — เลือกฆ่าคนหนึ่ง (โหวตร่วมกัน)</p>
+          <p>💉 <strong>หมอ</strong> — เลือกช่วยชีวิตคนหนึ่ง</p>
+          <p>🔍 <strong>นักสืบ</strong> — ตรวจสอบว่าใครเป็นมาเฟีย</p>
+        </div>
+        <div class="rule-section">
+          <h3>☀️ กลางวัน</h3>
+          <p>💬 พูดคุยกัน (90 วินาที)</p>
+          <p>🗳️ โหวตกำจัดคนออกจากหมู่บ้าน (ต้องได้เสียงข้างมาก)</p>
+        </div>
+        <div class="rule-section">
+          <h3>👥 จำนวนบทบาท</h3>
+          <table class="rules-table">
+            <tr><th>คน</th><th>🔪</th><th>👨‍🌾</th><th>💉</th><th>🔍</th><th>🃏</th></tr>
+            <tr><td>4</td><td>1</td><td>1</td><td>1</td><td>1</td><td>-</td></tr>
+            <tr><td>5</td><td>1</td><td>2</td><td>1</td><td>1</td><td>-</td></tr>
+            <tr><td>6</td><td>2</td><td>2</td><td>1</td><td>1</td><td>-</td></tr>
+            <tr><td>7</td><td>2</td><td>3</td><td>1</td><td>1</td><td>-</td></tr>
+            <tr><td>8</td><td>2</td><td>3</td><td>1</td><td>1</td><td>1</td></tr>
+            <tr><td>9</td><td>3</td><td>3</td><td>1</td><td>1</td><td>1</td></tr>
+            <tr><td>10</td><td>3</td><td>3</td><td>1</td><td>1</td><td>2</td></tr>
+          </table>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="closeRulesBtn" style="max-width:200px;margin:15px auto 0;">เข้าใจแล้ว!</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
