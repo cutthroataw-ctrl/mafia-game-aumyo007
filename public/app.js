@@ -12,7 +12,7 @@ const ROLE_ICONS = {
 const ROLE_DESCS = {
   mafia: 'กำจัดชาวบ้านในตอนกลางคืน',
   villager: 'ตามหามาเฟียและโหวตกำจัดในตอนกลางวัน',
-  doctor: 'เลือก 1 คนเพื่อป้องกันการตายในตอนกลางคืน',
+  doctor: 'เลือก 1 คนเพื่อปกป้องจากการตายในตอนกลางคืน',
   jester: 'หลอกให้ชาวบ้านโหวตประหารตัวเองเพื่อชนะ',
   veteran: 'ป้องกันตัวในตอนกลางคืน ทุกคนที่เข้ามาหาคุณจะตายทั้งหมด!',
   sheriff: 'ยิงคนในตอนกลางวันได้ 1 ครั้ง (ถ้ายิงคนดี ตัวเองจะตายด้วย)',
@@ -62,6 +62,241 @@ function playDaySound() { playTone(523, 0.15, 'square', 0.1); setTimeout(() => p
 function playVoteSound() { playTone(440, 0.1, 'square', 0.1); }
 function playKillSound() { playTone(150, 0.8, 'sawtooth', 0.08); }
 function playWinSound() { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.3, 'square', 0.12), i * 200)); }
+
+// ================== CINEMATIC EFFECTS & AUDIO SYNTHESIS ==================
+let roleRevealInterval = null;
+
+function playStabSound() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch(e) {}
+}
+
+function playGunshotSound() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(90, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.45);
+    gain.gain.setValueAtTime(0.6, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+    
+    // Add white noise explosion pop
+    const bufferSize = ctx.sampleRate * 0.25;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.4, ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    noise.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start();
+  } catch(e) {}
+}
+
+function startClientCountdown(callback) {
+  const overlay = $('countdownOverlay');
+  const text = $('countdownText');
+  overlay.classList.remove('hidden');
+  
+  let count = 3;
+  text.textContent = count;
+  text.style.animation = 'none';
+  text.offsetHeight; // trigger reflow
+  text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  playTone(550, 0.12, 'sine', 0.15); // Tick sound
+  
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      text.textContent = count;
+      text.style.animation = 'none';
+      text.offsetHeight; // trigger reflow
+      text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      playTone(550, 0.12, 'sine', 0.15); // Tick sound
+    } else if (count === 0) {
+      text.textContent = 'เริ่มเกม!';
+      text.style.animation = 'none';
+      text.offsetHeight;
+      text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      playTone(820, 0.35, 'sine', 0.18); // GO! sound
+    } else {
+      clearInterval(interval);
+      overlay.classList.add('hidden');
+      if (callback) callback();
+    }
+  }, 1000);
+}
+
+function triggerDeathCutscene(name, cause, callback) {
+  const overlay = $('deathCutscene');
+  const card = $('victimCard');
+  const avatar = $('victimAvatar');
+  const victimName = $('victimName');
+  const weapon = $('executionWeapon');
+  const knifeSVG = $('knifeSVG');
+  const gunSVG = $('gunSVG');
+  const slash = $('victimSlash');
+  const bullet = $('victimBullet');
+  const action = $('cutsceneAction');
+  const target = $('cutsceneTarget');
+  
+  overlay.classList.remove('hidden');
+  
+  // Resolve Avatar Emoji
+  let avatarEmoji = '😎';
+  if (gameState && gameState.players) {
+    const found = gameState.players.find(p => p.name === name);
+    if (found) {
+      avatarEmoji = AVATARS[found.avatar] || '😎';
+    }
+  }
+  if (name.includes('ทดสอบ')) {
+    avatarEmoji = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+  }
+
+  // Reset animations and states
+  card.style.animation = 'none';
+  card.offsetHeight; // trigger reflow
+  card.style.transform = '';
+  card.style.filter = '';
+  slash.style.display = 'none';
+  bullet.style.display = 'none';
+  weapon.style.opacity = '0';
+  weapon.style.transform = 'scale(0)';
+  
+  victimName.textContent = name;
+  avatar.textContent = avatarEmoji;
+  target.textContent = `💀 ${name} เสียชีวิต`;
+
+  if (cause === 'mafia') {
+    overlay.style.animation = 'flashBloodRed 0.6s forwards';
+    action.textContent = 'ถูกมาเฟียลอบแทง!';
+    
+    // Show Knife, hide Gun
+    knifeSVG.style.display = 'block';
+    gunSVG.style.display = 'none';
+    
+    // Position knife floating on the right pointing down-left naturally
+    weapon.style.left = '75%';
+    weapon.style.top = '15%';
+    weapon.style.opacity = '1';
+    weapon.style.transform = 'scale(1.2) rotate(0deg)';
+    
+    // Stabbing sequence 1
+    setTimeout(() => {
+      // Blade thrusts down-left directly into the card along its natural pointing axis
+      weapon.style.transform = 'scale(1.5) translate(-130px, 110px) rotate(-15deg)';
+      playStabSound();
+      card.style.animation = 'cardStabShake 0.25s ease';
+      slash.style.display = 'block';
+      setTimeout(() => { 
+        slash.style.display = 'none'; 
+        weapon.style.transform = 'scale(1.2) rotate(0deg)';
+      }, 150);
+    }, 500);
+
+    // Stabbing sequence 2
+    setTimeout(() => {
+      card.style.animation = 'none'; card.offsetHeight;
+      weapon.style.transform = 'scale(1.5) translate(-140px, 100px) rotate(5deg)';
+      playStabSound();
+      card.style.animation = 'cardStabShake 0.25s ease';
+      slash.style.display = 'block';
+      setTimeout(() => { 
+        slash.style.display = 'none'; 
+        weapon.style.transform = 'scale(1.2) rotate(0deg)';
+      }, 150);
+    }, 1100);
+
+    // Stabbing final strike
+    setTimeout(() => {
+      card.style.animation = 'none'; card.offsetHeight;
+      weapon.style.transform = 'scale(1.6) translate(-150px, 90px) rotate(-5deg)';
+      playStabSound();
+      card.style.animation = 'cardStabShake 0.35s ease';
+      slash.style.display = 'block';
+      setTimeout(() => { 
+        weapon.style.opacity = '0';
+      }, 250);
+    }, 1700);
+
+  } else {
+    overlay.style.animation = 'flashWhiteRed 0.6s forwards';
+    const actionText = (cause === 'veteran') ? 'ถูกทหารผ่านศึกยิงสวน!' : 'ถูกนายอำเภอวิสามัญ!';
+    action.textContent = actionText;
+    
+    // Show Gun, hide Knife
+    knifeSVG.style.display = 'none';
+    gunSVG.style.display = 'block';
+    
+    // Position gun floating on the left pointing right naturally
+    weapon.style.left = '10%';
+    weapon.style.top = '35%';
+    weapon.style.opacity = '1';
+    weapon.style.transform = 'scale(1.3) rotate(0deg)';
+    
+    // Gun aims closer
+    setTimeout(() => {
+      weapon.style.transform = 'scale(1.6) translate(30px, -10px) rotate(-5deg)';
+    }, 600);
+
+    // Gun fires!
+    setTimeout(() => {
+      playGunshotSound();
+      weapon.style.transform = 'scale(1.4) translate(10px, 0px) rotate(-20deg)';
+      bullet.style.display = 'block';
+      card.style.animation = 'cardShootShatter 0.5s cubic-bezier(.36,.07,.19,.97) both';
+      
+      // Secondary muzzle flash light
+      overlay.style.background = '#ffffff';
+      setTimeout(() => {
+        overlay.style.background = 'radial-gradient(circle, rgba(100,0,0,0.95) 0%, rgba(0,0,0,1) 100%)';
+        weapon.style.opacity = '0';
+      }, 100);
+    }, 1200);
+  }
+  
+  if ('speechSynthesis' in window && soundEnabled) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(`${name} เสียชีวิต`);
+    utterance.lang = 'th-TH';
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+    overlay.style.animation = '';
+    card.style.animation = 'none';
+    if (callback) callback();
+  }, 4200);
+}
+window.triggerDeathCutscene = triggerDeathCutscene;
 
 // ================== INIT ==================
 function init() {
@@ -144,6 +379,14 @@ function connectSocket() {
     showGameOver(data);
   });
 
+  socket.on('sheriffShotEffect', ({ targetName, sheriffName, backfire }) => {
+    triggerDeathCutscene(targetName, 'sheriff', () => {
+      if (backfire) {
+        triggerDeathCutscene(sheriffName, 'sheriff');
+      }
+    });
+  });
+
   socket.on('error', ({ message }) => {
     showError(message);
   });
@@ -170,10 +413,27 @@ function bindEvents() {
     socket.emit('joinRoom', { roomCode: code, playerName: name, avatar: selectedAvatar });
   };
 
+  // Standard / Custom Mode toggles
+  $('modeStandardBtn').onclick = () => {
+    $('modeStandardBtn').classList.add('active');
+    $('modeCustomBtn').classList.remove('active');
+    $('useCustomRoles').checked = false;
+    $('customSettingsGroup').style.display = 'none';
+  };
+
+  $('modeCustomBtn').onclick = () => {
+    $('modeStandardBtn').classList.remove('active');
+    $('modeCustomBtn').classList.add('active');
+    $('useCustomRoles').checked = true;
+    $('customSettingsGroup').style.display = 'block';
+  };
+
   $('startGameBtn').onclick = () => {
     const customSettings = {
       useCustom: $('useCustomRoles').checked,
       mafiaCount: parseInt($('settingMafia').value) || 1,
+      randomGoodRoles: $('settingRandomGood').checked,
+      revealRoleOnDeath: $('settingRevealRole') ? $('settingRevealRole').checked : true,
       doctor: $('settingDoctor').checked,
       detective: $('settingDetective').checked,
       jester: $('settingJester') ? $('settingJester').checked : false,
@@ -222,10 +482,16 @@ function bindEvents() {
     }
   };
 
+  $('settingRandomGood').onchange = (e) => {
+    $('manualRoleSettings').style.display = e.target.checked ? 'none' : 'block';
+  };
+
 
 
   $('roleOkBtn').onclick = () => {
+    if (roleRevealInterval) clearInterval(roleRevealInterval);
     $('roleReveal').classList.add('hidden');
+    startClientCountdown();
   };
 
   $('playAgainBtn').onclick = () => {
@@ -303,6 +569,9 @@ function renderGameState(state) {
 
   const isLobby = state.phase === 'lobby';
   const isGameOver = state.phase === 'game_over';
+  if (isLobby) {
+    $('gameOverPanel').classList.add('hidden');
+  }
 
   // Host Settings visibility
   if (isLobby || isGameOver) {
@@ -331,16 +600,8 @@ function renderGameState(state) {
   // Announcement
   renderAnnouncement(state);
 
-  // Roles in Play Banner
-  if (state.phase !== 'lobby' && state.rolesInPlay && state.rolesInPlay.length > 0) {
-    const counts = {};
-    state.rolesInPlay.forEach(r => counts[r] = (counts[r]||0)+1);
-    const roleTexts = Object.entries(counts).map(([r, c]) => `${ROLE_ICONS[r] || ''} ${getRoleNameTh(r)} x${c}`).join(' &nbsp;|&nbsp; ');
-    $('rolesInPlayBanner').innerHTML = `<strong>บทบาทในรอบนี้:</strong><br>${roleTexts}`;
-    $('rolesInPlayBanner').classList.remove('hidden');
-  } else {
-    if ($('rolesInPlayBanner')) $('rolesInPlayBanner').classList.add('hidden');
-  }
+  // Roles in Play Banner - HIDDEN by user request
+  if ($('rolesInPlayBanner')) $('rolesInPlayBanner').classList.add('hidden');
 
   // Vote section & skip button
   const canVoteDay = state.phase === 'day_vote' && state.myAlive && !state.hasConfirmedDay;
@@ -442,6 +703,26 @@ function renderGameState(state) {
 
   // Timer
   updateTimer(state);
+
+  // Dynamic Action Panel Visibility
+  const hasActiveAction = !$('voteSection').classList.contains('hidden') ||
+                          !$('skipVoteBtn').classList.contains('hidden') ||
+                          !$('confirmDayVoteBtn').classList.contains('hidden') ||
+                          !$('skipDiscussBtn').classList.contains('hidden') ||
+                          !$('confirmNightBtn').classList.contains('hidden');
+  const panel = document.querySelector('.action-panel:not(#gameOverPanel)');
+  if (panel) {
+    panel.style.display = hasActiveAction ? 'block' : 'none';
+    
+    // Check if it's the active player's turn to make a decision
+    const myTurnToAct = state.myAlive && (
+      (state.phase === 'day_discuss' && !state.hasVotedSkipDiscuss) ||
+      (state.phase === 'day_vote' && !state.hasConfirmedDay) ||
+      (state.phase === 'night_vote' && !state.hasConfirmedNight && ['mafia', 'doctor', 'detective', 'veteran'].includes(state.myRole))
+    );
+    
+    panel.classList.toggle('pulse-glow', hasActiveAction && myTurnToAct);
+  }
 }
 
 function renderPhaseBanner(state) {
@@ -503,7 +784,14 @@ function renderAnnouncement(state) {
   
   if (state.phase === 'day_announce' && state.killedPlayers && state.killedPlayers.length > 0) {
     if (lastDeathSoundRound !== state.round) {
-      playDeathSound();
+      let index = 0;
+      function nextCutscene() {
+        if (index < state.killedPlayers.length) {
+          const victim = state.killedPlayers[index++];
+          triggerDeathCutscene(victim.name, victim.cause || 'mafia', nextCutscene);
+        }
+      }
+      nextCutscene();
       lastDeathSoundRound = state.round;
     }
     
@@ -570,6 +858,8 @@ function renderPlayers(state) {
     if (p.role) {
       const factionClass = p.faction === 'good' ? 'role-good' : p.faction === 'evil' ? 'role-evil' : 'role-special';
       roleBadge = `<div class="role-badge ${factionClass}">${ROLE_ICONS[p.role] || ''} ${getRoleNameTh(p.role)}</div>`;
+    } else {
+      roleBadge = `<div class="role-badge role-unknown">👥 ผู้เล่น</div>`;
     }
 
     const hostBadge = p.isHost ? '<span class="host-badge">👑</span>' : '';
@@ -579,13 +869,30 @@ function renderPlayers(state) {
     const mafiaVoteCount = (state.mafiaVoteCounts && state.mafiaVoteCounts[p.id]) ? state.mafiaVoteCounts[p.id] : 0;
     const mafiaVoteBadge = (state.phase === 'night_vote' && state.myRole === 'mafia' && mafiaVoteCount > 0) ? `<div class="vote-count" style="background:#e74c3c; border-color:#fff;">🔪 ${mafiaVoteCount}</div>` : '';
 
+    // Playful interactive action helpers to guide player clicks
+    let helperBadge = '';
+    if (isVotable) {
+      if (state.phase === 'day_vote') {
+        helperBadge = `<div class="action-helper-badge" style="background:#e74c3c; box-shadow:0 0 10px rgba(231,76,60,0.55);">🗳️ โหวต</div>`;
+      } else if (state.phase === 'night_vote') {
+        if (state.myRole === 'mafia') {
+          helperBadge = `<div class="action-helper-badge" style="background:#800000; box-shadow:0 0 10px rgba(128,0,0,0.55);">🔪 สังหาร</div>`;
+        } else if (state.myRole === 'doctor') {
+          helperBadge = `<div class="action-helper-badge" style="background:#2ecc71; box-shadow:0 0 10px rgba(46,204,113,0.55);">🛡️ ปกป้อง</div>`;
+        } else if (state.myRole === 'detective') {
+          helperBadge = `<div class="action-helper-badge" style="background:#3498db; box-shadow:0 0 10px rgba(52,152,219,0.55);">🔍 ค้นหา</div>`;
+        }
+      }
+    }
+
     card.innerHTML = `
       ${hostBadge}
       ${voteCountBadge}
       ${mafiaVoteBadge}
-      <div class="avatar">${AVATARS[p.avatar] || '😎'}</div>
-      <div class="name">${escapeHtml(p.name)}</div>
       ${roleBadge}
+      ${helperBadge}
+      <div class="name">${escapeHtml(p.name)}</div>
+      <div class="avatar" style="font-size: 1.4rem; margin-top: 6px;">${AVATARS[p.avatar] || '😎'}</div>
     `;
 
     // Sheriff Shoot Button
@@ -713,27 +1020,92 @@ function showRoleReveal(data) {
   
   const card = document.querySelector('.role-reveal-card');
   card.style.borderColor = FACTION_COLORS[data.faction] || 'var(--accent2)';
+
+  // Auto-close countdown
+  let secondsLeft = 5;
+  const okBtn = $('roleOkBtn');
+  okBtn.textContent = `เข้าใจแล้ว! (${secondsLeft})`;
+  
+  if (roleRevealInterval) clearInterval(roleRevealInterval);
+  roleRevealInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft > 0) {
+      okBtn.textContent = `เข้าใจแล้ว! (${secondsLeft})`;
+    } else {
+      clearInterval(roleRevealInterval);
+      okBtn.click();
+    }
+  }, 1000);
 }
 
 function showGameOver(data) {
-  $('winnerText').textContent = `${data.winnerName}ชนะ!`;
-  $('winReason').textContent = data.reason;
+  // Ensure the popup overlay is hidden completely
+  $('gameOverOverlay').classList.add('hidden');
   
-  const container = $('resultPlayers');
+  // Show native game over dashboard panel
+  const panel = $('gameOverPanel');
+  panel.classList.remove('hidden');
+  
+  // Hide active announcement area and regular action panel
+  $('announcementArea').classList.add('hidden');
+  const actionPanel = document.querySelector('.action-panel:not(#gameOverPanel)');
+  if (actionPanel) actionPanel.style.display = 'none';
+
+  $('winnerTextNative').textContent = `${data.winnerName}ชนะ!`;
+  
+  // Dynamic color for the winning faction
+  if (data.winnerName.includes('ฝ่ายดี')) {
+    $('winnerTextNative').style.color = '#4caf50';
+  } else if (data.winnerName.includes('มาเฟีย')) {
+    $('winnerTextNative').style.color = '#e74c3c';
+  } else if (data.winnerName.includes('ตัวตลก')) {
+    $('winnerTextNative').style.color = '#ffd700';
+  } else {
+    $('winnerTextNative').style.color = 'var(--accent2)';
+  }
+  
+  $('winReasonNative').textContent = data.reason;
+  
+  // Populate player summary grid
+  const container = $('resultPlayersNative');
   container.innerHTML = '';
   data.players.forEach(p => {
     const div = document.createElement('div');
-    const bg = FACTION_COLORS[p.faction];
-    div.className = 'result-player';
-    div.style.background = `${bg}22`;
-    div.style.color = bg;
-    div.style.border = `1px solid ${bg}44`;
-    div.innerHTML = `${p.alive ? '' : '💀'} ${escapeHtml(p.name)} — ${ROLE_ICONS[p.role]} ${p.roleName}`;
+    const bg = FACTION_COLORS[p.faction] || 'var(--accent2)';
+    div.style.cssText = `
+      background: ${bg}15;
+      color: ${bg};
+      border: 1px solid ${bg}33;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s;
+    `;
+    
+    // Add death indicator or alive indicator
+    const nameStr = p.alive ? `😊 ${escapeHtml(p.name)}` : `💀 ${escapeHtml(p.name)}`;
+    const roleStr = `<span style="font-weight:700; filter: drop-shadow(0 0 5px ${bg}aa);">${ROLE_ICONS[p.role] || ''} ${p.roleName}</span>`;
+    
+    div.innerHTML = `
+      <span style="font-weight: 500;">${nameStr}</span>
+      <span>${roleStr}</span>
+    `;
     container.appendChild(div);
   });
 
-  $('playAgainBtn').style.display = 'inline-block';
-  $('gameOverOverlay').classList.remove('hidden');
+  // Bind native action buttons
+  $('playAgainBtnNative').onclick = () => {
+    panel.classList.add('hidden');
+    socket.emit('returnToLobby');
+  };
+  $('leaveRoomBtnNative').onclick = () => {
+    panel.classList.add('hidden');
+    window.location.reload();
+  };
 }
 
 // ================== UTILS ==================
@@ -759,7 +1131,7 @@ function showError(message) {
 }
 
 function getRoleNameTh(role) {
-  const names = { mafia:'มาเฟีย', villager:'ชาวบ้าน', doctor:'หมอ', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ', medium:'หมอผี' };
+  const names = { mafia:'มาเฟีย', villager:'ชาวบ้าน', doctor:'บอดี้กาด', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ', medium:'หมอผี' };
   return names[role] || role;
 }
 

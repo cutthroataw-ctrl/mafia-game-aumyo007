@@ -54,115 +54,160 @@
       <!-- Host Settings (Lobby only) -->
       <div class="host-settings hidden" id="hostSettings">
         <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" id="hostSettingsToggle">
-          <h4 style="margin:0;">⚙️ ตั้งค่าบทบาท</h4>
+          <h4 style="margin:0;">⚙️ ตั้งค่าห้อง & บทบาท</h4>
           <span id="hostSettingsIcon">▼</span>
         </div>
-        <div id="hostSettingsContent" style="display:none; margin-top:10px;">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-            <label><input type="checkbox" id="useCustomRoles"> เปิดใช้ตั้งค่าเอง</label>
+        <div id="hostSettingsContent" style="display:none; margin-top:15px;">
+          <!-- Mode Toggle Upfront -->
+          <div class="mode-selector" style="display:flex; gap:10px; margin-bottom:15px;">
+            <button type="button" class="btn btn-secondary active" id="modeStandardBtn" style="flex:1; margin:0; padding:10px; font-size:0.9rem;">📋 สแตนดาร์ด</button>
+            <button type="button" class="btn btn-secondary" id="modeCustomBtn" style="flex:1; margin:0; padding:10px; font-size:0.9rem;">⚙️ ปรับแต่งเอง (Custom)</button>
           </div>
-          <div class="setting-item">
-            <label>🔪 จำนวนมาเฟีย:</label>
-            <input type="number" id="settingMafia" min="1" max="5" value="2" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingDoctor" checked> 💉 หมอ (1 คน)</label>
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingDetective" checked> 🔍 นักสืบ (1 คน)</label>
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingJester"> 🃏 ตัวตลก (1 คน)</label>
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingVeteran"> 🎖️ ทหารผ่านศึก (1 คน)</label>
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingMedium" checked> 🔮 หมอผี (คุยกับคนตายตอนกลางคืนได้)</label>
-          </div>
-          <div class="setting-item">
-            <label><input type="checkbox" id="settingSheriff" checked> 🤠 นายอำเภอ (ยิงคนตอนกลางวันได้ 1 ครั้ง)</label>
-          </div>
+          <!-- Hidden checkbox that holds status -->
+          <input type="checkbox" id="useCustomRoles" style="display:none;">
           
-          <hr style="border-color: var(--border); margin: 10px 0;">
-          <h5 style="margin: 0 0 8px 0; color: var(--text-dim);">⏱️ ตั้งค่าเวลา (นาที)</h5>
-          
-          <div class="setting-item">
-            <label>💬 เวลาพูดคุย:</label>
-            <input type="number" id="timeDiscuss" min="1" max="10" value="2" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+          <!-- Custom Settings Group (hidden when Standard mode is active) -->
+          <div id="customSettingsGroup" style="display:none;">
+            <div class="setting-item" style="margin-bottom:10px; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px;">
+              <label style="display:flex; align-items:center; gap:8px; width:100%; cursor:pointer;">
+                <input type="checkbox" id="settingRevealRole" checked>
+                <span>💀 แสดงบทบาทคนตายเมื่อเสียชีวิต</span>
+              </label>
+            </div>
+            
+            <div class="setting-item">
+              <label>🔪 จำนวนมาเฟีย:</label>
+              <input type="number" id="settingMafia" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+            </div>
+            <div class="setting-item">
+              <label><input type="checkbox" id="settingRandomGood"> 🎲 สุ่มบทบาทฝ่ายดีทั้งหมด</label>
+            </div>
+            <div id="manualRoleSettings">
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingDoctor"> 💉 บอดี้กาด (1 คน)</label>
+              </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingDetective" checked> 🔍 นักสืบ (1 คน)</label>
+              </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingJester"> 🃏 ตัวตลก (1 คน)</label>
+              </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingVeteran"> 🎖️ ทหารผ่านศึก (1 คน)</label>
+              </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingMedium"> 🔮 หมอผี (คุยกับคนตายตอนกลางคืนได้)</label>
+              </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingSheriff"> 🤠 นายอำเภอ (ยิงคนตอนกลางวันได้ 1 ครั้ง)</label>
+              </div>
+            </div>
+            
+            <hr style="border-color: var(--border); margin: 15px 0;">
+            <h5 style="margin: 0 0 8px 0; color: var(--text-dim);">⏱️ ตั้งค่าเวลา (นาที)</h5>
+            
+            <div class="setting-item">
+              <label>💬 เวลาพูดคุย:</label>
+              <input type="number" id="timeDiscuss" min="1" max="10" value="2" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+            </div>
+            <div class="setting-item">
+              <label>🗳️ เวลาโหวตตอนเช้า:</label>
+              <input type="number" id="timeVote" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+            </div>
+            <div class="setting-item">
+              <label>🌙 เวลากลางคืน (มาเฟีย):</label>
+              <input type="number" id="timeNight" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+            </div>
+            <small style="color:var(--text-dim); display:block; margin-top:5px;">*ที่เหลือจะถูกสุ่มเป็นชาวบ้าน</small>
           </div>
-          <div class="setting-item">
-            <label>🗳️ เวลาโหวตตอนเช้า:</label>
-            <input type="number" id="timeVote" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+        </div>
+      </div>
+
+      <div class="game-dashboard">
+        <div class="dashboard-left">
+          <!-- My Role Badge -->
+          <div class="my-role-badge hidden" id="myRoleBadge">
+            <span class="my-role-icon" id="myRoleIcon">🎭</span>
+            <span class="my-role-text" id="myRoleText">บทบาท</span>
           </div>
-          <div class="setting-item">
-            <label>🌙 เวลากลางคืน (มาเฟีย):</label>
-            <input type="number" id="timeNight" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
+
+          <!-- Global Timer Display -->
+          <div id="globalTimerContainer" style="display:none; text-align:center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent1);">
+            <div class="timer-text" id="timerText" style="font-size: 3rem; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">00:00</div>
+            <div class="timer-bar" id="timerBarWrap" style="margin-top: 10px;">
+              <div class="timer-fill" id="timerFill" style="width:100%; background: #ffeb3b;"></div>
+            </div>
           </div>
 
-          <small style="color:var(--text-dim); display:block; margin-top:5px;">*ที่เหลือจะถูกสุ่มเป็นชาวบ้าน</small>
+          <!-- Phase Banner -->
+          <div class="phase-banner" id="phaseBanner">
+            <div class="phase-icon float" id="phaseIcon">🌙</div>
+            <div class="phase-title" id="phaseTitle">รอผู้เล่น...</div>
+            <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
+          </div>
+
+          <!-- Roles In Play Banner -->
+          <div id="rolesInPlayBanner" class="hidden" style="text-align:center; color:var(--text-dim); margin-bottom:15px; font-size:0.85rem; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 8px;"></div>
+
+          <!-- Announcement Area -->
+          <div id="announcementArea" class="hidden"></div>
+
+          <!-- Native Game Over Results Panel (Displayed directly in play page, no popups!) -->
+          <div class="action-panel hidden" id="gameOverPanel" style="margin: 15px 0; background: linear-gradient(135deg, rgba(255,215,0,0.08) 0%, rgba(255,255,255,0.03) 100%); border: 2px solid rgba(255,215,0,0.35); border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: popIn 0.5s ease;">
+            <div class="trophy" style="font-size: 3.5rem; filter: drop-shadow(0 0 15px rgba(255,215,0,0.45));">🏆</div>
+            <h2 id="winnerTextNative" style="font-size: 2.2rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.3); margin-top: 10px; margin-bottom: 2px;">ฝ่ายดีชนะ!</h2>
+            <div class="reason" id="winReasonNative" style="color: var(--text-dim); font-size: 1.15rem; margin-top: 5px; margin-bottom: 22px;">มาเฟียถูกกำจัดหมดแล้ว</div>
+            
+            <h3 style="font-size: 1.1rem; font-weight: 700; text-align: left; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: var(--text); display: flex; align-items: center; gap: 8px;">📋 สรุปบทบาทผู้เล่นทั้งหมด</h3>
+            <div class="result-players" id="resultPlayersNative" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 25px; text-align: left;"></div>
+            
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="playAgainBtnNative" style="flex: 1.5; min-width: 200px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; font-size: 1.05rem; padding: 12px; font-weight:700;">🔄 เล่นอีกครั้ง (กลับ Lobby)</button>
+              <button class="btn" id="leaveRoomBtnNative" style="flex: 1; min-width: 120px; background: #e74c3c; color: white; border: none; font-size: 1.05rem; padding: 12px; font-weight:700;">🚪 ออกจากห้อง</button>
+            </div>
+          </div>
+
+          <!-- Action Panel (Moved above Player Grid) -->
+          <div class="action-panel" style="margin: 15px 0; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); border-radius: 14px; padding: 15px; text-align: center;">
+            <!-- Vote instruction -->
+            <div class="vote-section hidden" id="voteSection" style="margin: 0;">
+              <h3 id="voteTitle" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;">เลือกเป้าหมาย</h3>
+              <button class="btn hidden" id="veteranAlertBtn" style="margin-top: 10px; background: #e91e63; color: white; width: 100%;">🛡️ เปิดการป้องกันตัว</button>
+            </div>
+
+            <!-- Skip & Confirm Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+              <button class="skip-vote-btn hidden" id="skipVoteBtn" style="margin: 0; width: 100%;">⏭️ ข้ามโหวต (ไม่กำจัดใคร)</button>
+              <button class="skip-vote-btn hidden" id="confirmDayVoteBtn" style="background:#2196F3; color:white; margin: 0; width: 100%;">✅ ยืนยันการโหวต</button>
+              <button class="skip-vote-btn hidden" id="skipDiscussBtn" style="background:var(--accent2); color:white; margin: 0; width: 100%;">⏩ โหวตข้ามเวลาพูดคุย</button>
+              <button class="skip-vote-btn hidden" id="confirmNightBtn" style="background:#4caf50; color:white; margin: 0; width: 100%;">✅ ยืนยันการกระทำ</button>
+            </div>
+          </div>
+
+          <!-- Player Grid -->
+          <div class="player-grid" id="playerGrid"></div>
         </div>
-      </div>
 
-      <!-- My Role Badge -->
-      <div class="my-role-badge hidden" id="myRoleBadge">
-        <span class="my-role-icon" id="myRoleIcon">🎭</span>
-        <span class="my-role-text" id="myRoleText">บทบาท</span>
-      </div>
+        <div class="dashboard-right">
+          <!-- Chat -->
+          <div class="chat-container" id="chatContainer">
+            <div class="chat-header">
+              <span>💬 แชท</span>
+              <span id="chatLabel" style="font-size:0.8rem;color:var(--text-dim);">ทั้งหมด</span>
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+              <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." maxlength="200">
+              <button id="chatSendBtn">ส่ง</button>
+            </div>
+          </div>
 
-      <!-- Global Timer Display -->
-      <div id="globalTimerContainer" style="display:none; text-align:center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent1);">
-        <div class="timer-text" id="timerText" style="font-size: 3rem; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">00:00</div>
-        <div class="timer-bar" id="timerBarWrap" style="margin-top: 10px;">
-          <div class="timer-fill" id="timerFill" style="width:100%; background: #ffeb3b;"></div>
+          <!-- Game Log -->
+          <div class="game-log" id="gameLog">
+            <h3>📋 บันทึกเกม</h3>
+            <div id="logEntries"></div>
+          </div>
         </div>
-      </div>
-
-      <!-- Phase Banner -->
-      <div class="phase-banner" id="phaseBanner">
-        <div class="phase-icon float" id="phaseIcon">🌙</div>
-        <div class="phase-title" id="phaseTitle">รอผู้เล่น...</div>
-        <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
-      </div>
-
-      <!-- Roles In Play Banner -->
-      <div id="rolesInPlayBanner" class="hidden" style="text-align:center; color:var(--text-dim); margin-bottom:15px; font-size:0.85rem; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 8px;"></div>
-
-      <!-- Announcement Area -->
-      <div id="announcementArea" class="hidden"></div>
-
-      <!-- Vote instruction -->
-      <div class="vote-section hidden" id="voteSection">
-        <h3 id="voteTitle">เลือกเป้าหมาย</h3>
-        <button class="btn hidden" id="veteranAlertBtn" style="margin-top: 10px; background: #e91e63; color: white;">🛡️ เปิดการป้องกันตัว</button>
-      </div>
-
-      <!-- Player Grid -->
-      <div class="player-grid" id="playerGrid"></div>
-
-      <!-- Skip Buttons -->
-      <button class="skip-vote-btn hidden" id="skipVoteBtn">⏭️ ข้ามโหวต (ไม่กำจัดใคร)</button>
-      <button class="skip-vote-btn hidden" id="confirmDayVoteBtn" style="background:#2196F3; color:white; margin-top:10px;">✅ ยืนยันการโหวต</button>
-      <button class="skip-vote-btn hidden" id="skipDiscussBtn" style="background:var(--accent2); color:white;">⏩ โหวตข้ามเวลาพูดคุย</button>
-      <button class="skip-vote-btn hidden" id="confirmNightBtn" style="background:#4caf50; color:white; margin-top:10px;">✅ ยืนยันการกระทำ</button>
-
-      <!-- Chat -->
-      <div class="chat-container" id="chatContainer">
-        <div class="chat-header">
-          <span>💬 แชท</span>
-          <span id="chatLabel" style="font-size:0.8rem;color:var(--text-dim);">ทั้งหมด</span>
-        </div>
-        <div class="chat-messages" id="chatMessages"></div>
-        <div class="chat-input-area">
-          <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." maxlength="200">
-          <button id="chatSendBtn">ส่ง</button>
-        </div>
-      </div>
-
-      <!-- Game Log -->
-      <div class="game-log" id="gameLog">
-        <h3>📋 บันทึกเกม</h3>
-        <div id="logEntries"></div>
       </div>
     </div>
   </div>
@@ -226,6 +271,7 @@
           <p>🤡 <strong>ตัวตลก (Jester)</strong> — ฝ่ายอิสระ ชนะเมื่อถูกโหวตออกตอนกลางวัน</p>
           <p>🎖️ <strong>ทหารผ่านศึก (Veteran)</strong> — ฝ่ายดี ป้องกันตัวตอนกลางคืนได้ 1 ครั้ง (คนที่มาหาจะตายทั้งหมด)</p>
           <p>🔮 <strong>หมอผี (Medium)</strong> — ฝ่ายดี แอบอ่านข้อความและคุยกับคนตายได้ในตอนกลางคืน</p>
+          <p>💉 <strong>บอดี้กาด (Bodyguard)</strong> — ฝ่ายดี เลือกปกป้อง 1 คนในตอนกลางคืน</p>
           <p>🤠 <strong>นายอำเภอ (Sheriff)</strong> — ฝ่ายดี ยิงคนตอนกลางวันได้ 1 ครั้ง ถ้ายิงคนดี ตัวเองจะตายแทน</p>
         </div>
       </div>
@@ -239,10 +285,44 @@
   </div>
 
   <!-- Death Cutscene Overlay -->
-  <div class="modal-overlay hidden" id="deathCutscene" style="z-index: 900; flex-direction:column; background: radial-gradient(circle, rgba(150,0,0,0.9) 0%, rgba(0,0,0,1) 100%);">
-    <div style="font-size:7rem; animation: float 2s infinite;">💀</div>
-    <h1 style="color:white; font-size:3rem; text-shadow:0 0 20px black; text-align:center; margin-top:20px;">มีคนตายเมื่อคืน!</h1>
-    <h2 id="deathCutsceneName" style="color:#ffcccc; font-size:2rem; margin-top:10px;"></h2>
+  <div class="modal-overlay hidden" id="deathCutscene" style="z-index: 9999; flex-direction:column; justify-content:center; align-items:center; transition: all 0.5s ease; background: radial-gradient(circle, rgba(150,0,0,0.9) 0%, rgba(0,0,0,1) 100%); overflow: hidden;">
+    
+    <!-- Floating Execution Weapon (Custom High-Fidelity SVGs to bypass OS Emoji differences!) -->
+    <div id="executionWeapon" style="position: absolute; width: 120px; height: 120px; pointer-events: none; z-index: 10001; transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: scale(0); opacity: 0; filter: drop-shadow(0 0 15px rgba(0,0,0,0.5));">
+      <!-- Premium steel combat knife pointing down-left with handle at top-right -->
+      <svg id="knifeSVG" viewBox="0 0 100 100" style="display: none; width: 100%; height: 100%;">
+        <path d="M15 85 L50 50 L58 58 Z" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1.5" />
+        <path d="M15 85 C 25 80, 45 60, 50 50" fill="none" stroke="#ffffff" stroke-width="2.5" />
+        <path d="M47 47 L53 53" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" />
+        <path d="M50 50 L80 20" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
+        <circle cx="80" cy="20" r="4.5" fill="#f59e0b" />
+      </svg>
+      <!-- Premium steel tactical pistol pointing right with handle at bottom-left -->
+      <svg id="gunSVG" viewBox="0 0 100 100" style="display: none; width: 100%; height: 100%;">
+        <path d="M25 65 L33 48 L75 48 L75 58 L58 58 L58 65 Z" fill="#334155" stroke="#1e293b" stroke-width="1.5" />
+        <rect x="33" y="38" width="45" height="12" rx="2" fill="#94a3b8" stroke="#64748b" stroke-width="1.5" />
+        <rect x="78" y="41" width="5" height="6" fill="#1e293b" />
+        <path d="M42 58 C 42 64, 50 64, 50 58" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
+        <path d="M46 54 L45 59" stroke="#cbd5e1" stroke-width="2" />
+        <path d="M33 48 L22 72 L32 75 L41 55 Z" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" />
+      </svg>
+    </div>
+
+    <!-- Execution Victim Card (Among Us / Danganronpa style!) -->
+    <div id="victimCard" style="display:flex; flex-direction:column; align-items:center; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.2); border-radius: 24px; padding: 35px 50px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: all 0.3s ease; position: relative; margin-bottom: 25px; min-width: 280px; text-align: center;">
+      <!-- Zoomed avatar -->
+      <div id="victimAvatar" style="font-size: 6rem; line-height: 1; filter: drop-shadow(0 0 15px rgba(255,255,255,0.25)); transition: all 0.25s ease;">😎</div>
+      <!-- Victim Name -->
+      <div id="victimName" style="color: white; font-size: 2.4rem; font-weight: 800; margin-top: 15px; text-shadow: 0 0 12px rgba(0,0,0,0.6); letter-spacing: 0.5px;">ชื่อผู้เล่น</div>
+
+      <!-- Dynamic blood splatter directly on card -->
+      <div id="victimSlash" style="display:none; position:absolute; font-size:7rem; left:50%; top:50%; transform:translate(-50%, -50%); pointer-events:none; animation: popIn 0.1s ease; text-shadow: 0 0 10px #ff0000;">🩸</div>
+      <!-- Dynamic bullet hole directly on card -->
+      <div id="victimBullet" style="display:none; position:absolute; font-size:7rem; left:50%; top:50%; transform:translate(-50%, -50%); pointer-events:none; animation: popIn 0.1s ease; text-shadow: 0 0 15px #ffeb3b;">💥</div>
+    </div>
+
+    <h1 id="cutsceneAction" style="color:white; font-size:3.5rem; font-weight:900; text-align:center; text-shadow: 0 0 20px rgba(0,0,0,0.8); margin: 0 20px;"></h1>
+    <h2 id="cutsceneTarget" style="color:#ffcccc; font-size:2.2rem; margin-top:10px; font-weight:700; text-align:center; text-shadow: 0 0 10px rgba(0,0,0,0.8);"></h2>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
