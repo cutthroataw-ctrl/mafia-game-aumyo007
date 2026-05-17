@@ -502,6 +502,12 @@ function bindEvents() {
     socket.emit('joinRoom', { roomCode: code, playerName: name, avatar: selectedAvatar });
   };
 
+  $('leaveLobbyBtn').onclick = () => {
+    if (confirm('คุณต้องการออกจากห้องใช่หรือไม่?')) {
+      window.location.reload();
+    }
+  };
+
   // Standard / Custom Mode toggles
   $('modeStandardBtn').onclick = () => {
     $('modeStandardBtn').classList.add('active');
@@ -664,6 +670,7 @@ function renderGameState(state) {
   if (lastPhase !== state.phase) {
     if (['lobby', 'starting'].includes(state.phase)) {
       $('chatMessages').innerHTML = '';
+      lastDeathSoundRound = 0;
     }
     
     if (state.phase === 'night_vote') playNightSound();
@@ -687,6 +694,7 @@ function renderGameState(state) {
   if (isLobby) {
     $('gameOverPanel').classList.add('hidden');
   }
+  $('leaveLobbyBtn').classList.toggle('hidden', !isLobby);
 
   // Host Settings visibility
   if (isLobby || isGameOver) {

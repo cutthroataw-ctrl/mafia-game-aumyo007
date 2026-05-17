@@ -369,6 +369,18 @@ function startGame(room, customSettings) {
   room.jesterWin = false;
   room.lastKilled = null;
   room.lastEliminated = null;
+  room.nightVotes.clear();
+  room.dayVotes.clear();
+  room.doctorSave = null;
+  room.detectiveCheck = null;
+  room.curiousCheck = null;
+  room.killedPlayers = [];
+  room.skipDiscussVotes.clear();
+  room.nightConfirmations.clear();
+  room.dayConfirmations.clear();
+  room.veteranAlerts.clear();
+  room.veteranUsed.clear();
+  room.sheriffUsed.clear();
 
   addLog(room, '🎮 เกมเริ่มแล้ว! ทุกคนได้รับบทบาทแล้ว');
   
@@ -561,8 +573,8 @@ function resolveNight(room) {
       const causeTh = cause === 'mafia' ? 'ถูกมาเฟียสังหาร' : 'ถูกทหารผ่านศึกป้องกันตัวยิงสวนดับ';
       addLog(room, `☀️ เช้าวันที่ ${room.round} — ${victim.name} ${causeTh}!${roleText}`);
       
-      // If killed by mafia, they get to know which mafia killed them!
-      if (cause === 'mafia') {
+      // If killed by mafia (or killed by veteran but also targeted by mafia), let them know who the mafia killer was!
+      if (cause === 'mafia' || (cause === 'veteran' && killedByMafia === id)) {
         const aliveMafia = getAlivePlayers(room).filter(p => p.role === ROLES.MAFIA);
         if (aliveMafia.length > 0) {
           let votingMafia = [];
@@ -577,9 +589,13 @@ function resolveNight(room) {
           const mafiaPool = votingMafia.length > 0 ? votingMafia : aliveMafia;
           const chosenKiller = mafiaPool[Math.floor(Math.random() * mafiaPool.length)];
           
+          const msgText = cause === 'mafia' 
+            ? `ก่อนสิ้นลมหายใจ คุณเห็นใบหน้าของ [${chosenKiller.name}] แวบเข้ามา! เขาคือมาเฟียผู้ลงมือปลิดชีพคุณ! 🔪`
+            : `คุณถูกยิงสวนโดยทหารผ่านศึกจากการแอบเดินทางไปหาเขา! แต่ก่อนที่คุณจะสิ้นใจ คุณยังแอบเห็นใบหน้าของ [${chosenKiller.name}] แวบเข้ามา! เขาคือมาเฟียผู้โหวตสังหารคุณในคืนนี้ด้วย! 🔪🎖️`;
+
           io.to(id).emit('chatMessage', {
             senderName: '💀 ความจริงก่อนสิ้นลม',
-            message: `ก่อนสิ้นลมหายใจ คุณเห็นใบหน้าของ [${chosenKiller.name}] แวบเข้ามา! เขาคือมาเฟียผู้ลงมือปลิดชีพคุณ! 🔪`,
+            message: msgText,
             isSystem: true,
             color: '#e74c3c'
           });
@@ -662,10 +678,10 @@ function resolveNight(room) {
           
           if (incoming.length > 0) {
             incoming.forEach(v => {
-              reportLines.push(`👈 มีคนแอบเดินทางมาหาเขาเพื่อใช้แอคชั่น: [${v.fromName}]`);
+              reportLines.push(`👈 มีคนแอบเดินทางมาหาเป้าหมาย: [${v.fromName}]`);
             });
           } else {
-            reportLines.push(`👈 ไม่มีใครเดินทางมาหาเขาเลย`);
+            reportLines.push(`👈 ไม่มีใครเดินทางมาหาเป้าหมายเลย`);
           }
           
           io.to(curId).emit('chatMessage', {
