@@ -7,16 +7,137 @@ const ROLE_ICONS = {
   detective: '🔍',
   veteran: '🎖️',
   sheriff: '🤠',
-  medium: '🔮'
+  medium: '🔮',
+  jester: '🤡',
+  curious: '🤔'
 };
 const ROLE_DESCS = {
-  mafia: 'กำจัดชาวบ้านในตอนกลางคืน',
-  villager: 'ตามหามาเฟียและโหวตกำจัดในตอนกลางวัน',
-  doctor: 'เลือก 1 คนเพื่อปกป้องจากการตายในตอนกลางคืน',
-  jester: 'หลอกให้ชาวบ้านโหวตประหารตัวเองเพื่อชนะ',
-  veteran: 'ป้องกันตัวในตอนกลางคืน ทุกคนที่เข้ามาหาคุณจะตายทั้งหมด!',
-  sheriff: 'ยิงคนในตอนกลางวันได้ 1 ครั้ง (ถ้ายิงคนดี ตัวเองจะตายด้วย)',
-  medium: 'สามารถอ่านข้อความและพูดคุยกับคนตายได้ในตอนกลางคืน'
+  mafia: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #ff9999; font-weight: bold; text-align: center;">🕵️‍♂️ ฝ่ายร้าย: คุณเป็นคนร้ายที่ต้องทำลายล้างหมู่บ้านจากเงามืด!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในแต่ละคืน คุณและกลุ่มมาเฟียจะได้รับสิทธิ์เข้าแชทลับพิเศษ และร่วมกันโหวตฆ่าเหยื่อผู้บริสุทธิ์ได้ 1 คน
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> กำจัดฝ่ายดีทุกคนให้หมด หรือลดจำนวนลงจนมาเฟียมีจำนวนเท่ากับหรือมากกว่าฝ่ายดี
+      </div>
+      <div style="background: rgba(231, 76, 60, 0.15); border-left: 3px solid #e74c3c; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> คอยคุยตกลงแผนสังหารกับทีมตอนกลางคืน และในตอนกลางวันให้แกล้งเนียนทำตัวเป็นชาวบ้านเพื่อป้ายความผิดให้คนอื่น!
+      </div>
+    </div>
+  `,
+  villager: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #a3e635; font-weight: bold; text-align: center;">🧑‍🌾 ฝ่ายดี: คุณคือพลังขับเคลื่อนที่แท้จริงของหมู่บ้านแห่งความยุติธรรม!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ไม่มีพลังพิเศษในตอนกลางคืน แต่ตอนกลางวันเสียงโหวตของคุณคือกุญแจหลักในการชี้ชะตากำจัดคนร้าย
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> สังเกตพฤติกรรมการสนทนา โหวตกำจัดกลุ่มมาเฟียให้เกลี้ยงหมู่บ้านผ่านการโหวตตอนกลางวัน
+      </div>
+      <div style="background: rgba(46, 204, 113, 0.15); border-left: 3px solid #2ecc71; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> คอยจับตาดูคนที่มีพิรุธ (เช่น เงียบเกินไป หรือยุยงให้โหวตมั่ว) และจับมือร่วมกันโหวตพร้อมกับบทบาทพิเศษ!
+      </div>
+    </div>
+  `,
+  doctor: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #2ecc71; font-weight: bold; text-align: center;">🛡️ ฝ่ายดี: คุณคือองครักษ์ผู้พิทักษ์และช่วยชีวิตเหยื่อในเงามืด!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในแต่ละคืน สามารถเลือกปกป้องผู้เล่น 1 คน (รวมถึงตัวเองได้) เพื่อป้องกันจากการถูกมาเฟียฆ่าในคืนนั้น
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> คุ้มครองผู้เล่นคนสำคัญ เช่น นักสืบ หรือนายอำเภอ เพื่อให้พวกเขาสืบหาคนร้ายได้สำเร็จ
+      </div>
+      <div style="background: rgba(46, 204, 113, 0.15); border-left: 3px solid #2ecc71; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> คอยจับตาดูการแชทในวันแรกๆ เพื่อพยายามวิเคราะห์หาว่าใครคือนักสืบตัวจริง แล้วคอยช่วยปกป้องเขาในทุกๆ คืน!
+      </div>
+    </div>
+  `,
+  detective: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #3498db; font-weight: bold; text-align: center;">🔍 ฝ่ายดี: คุณคือนักสืบอัจฉริยะผู้เปิดโปงความจริงและจับกุมคนร้าย!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในแต่ละคืน สามารถเลือกตรวจสอบผู้เล่นได้ 1 คน เพื่อสืบดูว่าเป้าหมายเป็นมาเฟียหรือเป็นคนดี
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> ค้นหากลุ่มมาเฟียให้เร็วที่สุด และใช้วิจารณญาณชี้นำให้ชาวบ้านช่วยกันโหวตประหารฆาตกรตัวจริง
+      </div>
+      <div style="background: rgba(52, 152, 219, 0.15); border-left: 3px solid #3498db; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> อย่าเปิดเผยตัวตนเร็วเกินไป เพราะจะตกเป็นเป้าสายตาของมาเฟียทันที คอยสืบเงียบๆ และบอกเบาะแสอย่างมีศิลปะ!
+      </div>
+    </div>
+  `,
+  jester: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #f39c12; font-weight: bold; text-align: center;">🤡 ฝ่ายพิเศษ: คุณคือคนบ้าผู้ปั่นป่วนโลก และกระหายความตาย!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ไม่มีพลังพิเศษตอนกลางคืน แต่ความสุขของคุณคือการปั่นป่วนจิตวิทยาและทำให้ผู้คนไขว้เขว
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> ทำตัวให้ดูมีพิรุธ เพื่อหลอกให้ชาวบ้านหลงเชื่อและร่วมมือกัน **โหวตประหารชีวิตคุณในตอนกลางวัน** เพื่อชนะเกมทันที!
+      </div>
+      <div style="background: rgba(243, 156, 18, 0.15); border-left: 3px solid #f39c12; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> อย่าทำตัวแปลกแยกจนโจ่งแจ้งเกินไป แกล้งปฏิเสธแบบตะกุกตะกัก หรือทำเนียนเผลอปล่อยข้อมูลลับให้ดูสงสัย!
+      </div>
+    </div>
+  `,
+  veteran: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #9c27b0; font-weight: bold; text-align: center;">🎖️ ฝ่ายดี: อดีตทหารกล้าสุดแกร่ง ผู้มาพร้อมกับสัญชาตญาณเอาตัวรอดขั้นสุดยอด!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในตอนกลางคืน สามารถกดเลือก **"ระวังภัยขั้นสุด"** ได้ 1 ครั้งต่อเกม ในคืนที่เปิดใช้ **ทุกคนที่เข้ามาหาคุณจะตายทั้งหมดทันที!** (ไม่ว่าจะดีหรือร้าย)
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> ป้องกันตัวเองและสังหารมาเฟียที่แอบบุกเข้ามาหวังจะฆ่าคุณในเงามืด
+      </div>
+      <div style="background: rgba(156, 39, 176, 0.15); border-left: 3px solid #9c27b0; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> เปิดใช้ในคืนที่คุณค่อนข้างมั่นใจว่ามาเฟียจะหันมาฆ่าคุณ แต่อย่ากดใช้เดาสุ่มมั่วซั่วเพราะอาจยิงเพื่อนฝ่ายดีตายได้!
+      </div>
+    </div>
+  `,
+  sheriff: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #e67e22; font-weight: bold; text-align: center;">🤠 ฝ่ายดี: ผู้รักษากฎหมายมือปืนโหด ผู้พกความรับผิดชอบอันยิ่งใหญ่!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในตอนกลางวัน สามารถกดเลือก **"สั่งยิงเป้าหมายต่อหน้าทุกคนทันที"** ได้ 1 ครั้งต่อเกม (ถ้ายิงโดนมาเฟียจะตายทันที ถ้ายิงโดนคนดีคุณจะตายแทน!)
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> สังหารผู้เล่นฝ่ายร้ายที่ค่อนข้างมั่นใจในตอนกลางวันเพื่อกู้สถานการณ์และพลิกเกม
+      </div>
+      <div style="background: rgba(230, 126, 34, 0.15); border-left: 3px solid #e67e22; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> อย่าเสี่ยงกดยิงปืนเดาสุ่มเด็ดขาด! ควรรอข้อมูลที่ชัดเจนจากนักสืบ หรือมั่นใจว่าคนนั้นมีพิรุธสุดโต่งจริงๆ เท่านั้น!
+      </div>
+    </div>
+  `,
+  medium: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #9b59b6; font-weight: bold; text-align: center;">🔮 ฝ่ายดี: ผู้สื่อสารวิญญาณและรับรู้ความจริงจากโลกแห่งความตาย!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในตอนกลางคืน สามารถแอบเข้าไปร่วมวงแชทพิเศษสนทนากับ **"วิญญาณผู้เล่นที่ตายไปแล้ว"** เพื่อรวบรวมเบาะแส
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> นำข้อมูลลับที่วิญญาณล่วงรู้ เช่น คืนก่อนตายเจอใคร หรือสงสัยใคร นำมาประกาศแชร์บอกชาวบ้านในแชทตอนกลางวัน
+      </div>
+      <div style="background: rgba(155, 89, 182, 0.15); border-left: 3px solid #9b59b6; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> คอยถามไถ่และสืบข้อมูลกับวิญญาณอย่างละเอียดในแต่ละคืน และนำข้อเท็จจริงมาเปิดเผยอย่างมั่นใจในตอนกลางวัน!
+      </div>
+    </div>
+  `,
+  curious: `
+    <div class="role-details-container" style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #fff;">
+      <p style="margin-bottom: 12px; color: #ba68c8; font-weight: bold; text-align: center;">🤔 ฝ่ายดี: คุณคือเด็กขี้สงสัยผู้คอยจับตาดูและถอดรหัสความเคลื่อนไหว!</p>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>⚡ ความสามารถ:</strong> ในแต่ละคืน เลือกส่องบ้านผู้เล่น 1 คน ตอนเช้าคุณจะรู้ทันทีว่า **"เขาแอบออกไปหาใคร"** หรือ **"มีใครแอบมาหาเขาบ้าง"**
+      </div>
+      <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+        <strong>🎯 เป้าหมาย:</strong> ตรวจจับความพิรุธ ค้นหามาเฟียที่แอบแฝงตัวเดินทางไปโจมตี หรือตรวจสอบว่าใครแอบเนียนออกไปหาคนอื่น
+      </div>
+      <div style="background: rgba(186, 104, 200, 0.15); border-left: 3px solid #ba68c8; padding: 10px; border-radius: 4px;">
+        <strong>💡 ทิปส์กระซิบ:</strong> คอยส่องเป้าหมายที่ตกเป็นผู้ต้องสงสัย หากพบว่าพวกเขาแอบออกไปหาคนที่เสียชีวิตในคืนนั้น เขาคือมาเฟียแน่นอน!
+      </div>
+    </div>
+  `
 };
 const FACTION_COLORS = { good: '#2ecc71', evil: '#e74c3c', special: '#f39c12' };
 
@@ -408,6 +529,7 @@ function bindEvents() {
       veteran: $('settingVeteran') ? $('settingVeteran').checked : false,
       sheriff: $('settingSheriff') ? $('settingSheriff').checked : false,
       medium: $('settingMedium') ? $('settingMedium').checked : false,
+      curious: $('settingCurious') ? $('settingCurious').checked : false,
       timeDiscuss: $('timeDiscuss') ? $('timeDiscuss').value : 2,
       timeVote: $('timeVote') ? $('timeVote').value : 1,
       timeNight: $('timeNight') ? $('timeNight').value : 1
@@ -477,6 +599,20 @@ function bindEvents() {
   $('closeRulesBtn').onclick = () => $('rulesModal').classList.add('hidden');
   $('rulesModal').onclick = (e) => { if (e.target === $('rulesModal')) $('rulesModal').classList.add('hidden'); };
 
+  if ($('toggleRoleDescBtn')) {
+    $('toggleRoleDescBtn').onclick = () => {
+      const content = $('myRoleDescContent');
+      const icon = $('roleDescToggleIcon');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▲';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▼';
+      }
+    };
+  }
+
   // Sound toggle
   $('soundBtn').onclick = () => {
     soundEnabled = !soundEnabled;
@@ -488,6 +624,12 @@ function bindEvents() {
     if (e.key === 'Enter') sendChat();
   });
   $('chatSendBtn').onclick = sendChat;
+  
+  if ($('sendToMafiaOnly')) {
+    $('sendToMafiaOnly').onchange = () => {
+      if (gameState) renderGameState(gameState);
+    };
+  }
 
   // Enter key on inputs
   $('playerNameInput').addEventListener('keydown', (e) => {
@@ -502,7 +644,9 @@ function sendChat() {
   const input = $('chatInput');
   const msg = input.value.trim();
   if (!msg) return;
-  socket.emit('chatMessage', { message: msg });
+  const sendToMafiaOnlyEl = $('sendToMafiaOnly');
+  const toMafiaOnly = sendToMafiaOnlyEl ? sendToMafiaOnlyEl.checked : false;
+  socket.emit('chatMessage', { message: msg, toMafiaOnly: toMafiaOnly });
   input.value = '';
 }
 
@@ -516,8 +660,12 @@ function renderGameState(state) {
   const isDay = ['day_announce','day_discuss','day_vote','day_result'].includes(state.phase);
   document.body.classList.toggle('day-phase', isDay);
 
-  // Phase change sounds
+  // Phase change sounds and chat clearing
   if (lastPhase !== state.phase) {
+    if (['lobby', 'starting'].includes(state.phase)) {
+      $('chatMessages').innerHTML = '';
+    }
+    
     if (state.phase === 'night_vote') playNightSound();
     else if (state.phase === 'day_announce') { playDaySound(); if (state.lastKilled) playKillSound(); }
     else if (state.phase === 'day_vote') playVoteSound();
@@ -557,8 +705,16 @@ function renderGameState(state) {
     $('myRoleBadge').classList.add('faction-' + state.myFaction);
     $('myRoleIcon').textContent = ROLE_ICONS[state.myRole] || '🎭';
     $('myRoleText').textContent = `คุณคือ ${getRoleNameTh(state.myRole)} (${state.myAlive ? 'มีชีวิต' : '💀 ตายแล้ว'})`;
+    
+    if ($('myRoleDescBox')) {
+      $('myRoleDescBox').classList.remove('hidden');
+      $('myRoleDescContent').innerHTML = ROLE_DESCS[state.myRole] || '';
+    }
   } else {
     $('myRoleBadge').classList.add('hidden');
+    if ($('myRoleDescBox')) {
+      $('myRoleDescBox').classList.add('hidden');
+    }
   }
 
   // Phase banner
@@ -577,17 +733,17 @@ function renderGameState(state) {
   
   $('voteSection').classList.toggle('hidden', !showVote);
   
-  $('skipVoteBtn').classList.toggle('hidden', state.phase !== 'day_vote');
+  $('skipVoteBtn').classList.toggle('hidden', state.phase !== 'day_vote' || !state.myAlive);
   $('skipVoteBtn').disabled = state.hasConfirmedDay;
-  if (state.phase === 'day_vote') {
+  if (state.phase === 'day_vote' && state.myAlive) {
     $('skipVoteBtn').textContent = `⏭️ ข้ามโหวต (ไม่กำจัดใคร) - ${state.skipVoteCount || 0} เสียง`;
   }
 
   // Day Confirm
   const canConfirmDay = state.phase === 'day_vote' && state.myAlive && state.hasVoted;
-  $('confirmDayVoteBtn').classList.toggle('hidden', state.phase !== 'day_vote');
+  $('confirmDayVoteBtn').classList.toggle('hidden', state.phase !== 'day_vote' || !state.myAlive);
   $('confirmDayVoteBtn').disabled = !canConfirmDay || state.hasConfirmedDay;
-  if (state.phase === 'day_vote') {
+  if (state.phase === 'day_vote' && state.myAlive) {
     const aliveCount = state.players.filter(p => p.alive).length;
     $('confirmDayVoteBtn').textContent = state.hasConfirmedDay ? `✅ ยืนยันแล้ว (${state.dayConfirmCount || 0}/${aliveCount})` : `✅ ยืนยันการโหวต (${state.dayConfirmCount || 0}/${aliveCount})`;
     $('confirmDayVoteBtn').style.opacity = state.hasConfirmedDay ? '0.6' : '1';
@@ -604,21 +760,31 @@ function renderGameState(state) {
 
   // Night Confirm
   const canConfirmNight = state.phase === 'night_vote' && state.myAlive;
-  $('confirmNightBtn').classList.toggle('hidden', !canConfirmNight || state.hasConfirmedNight);
-  if (canConfirmNight && !state.hasConfirmedNight) {
-    $('confirmNightBtn').textContent = `✅ ยืนยันการกระทำ (${state.nightConfirmCount || 0}/${state.nightActiveCount || 1})`;
+  $('confirmNightBtn').classList.toggle('hidden', !canConfirmNight);
+  if (canConfirmNight) {
+    $('confirmNightBtn').disabled = !!state.hasConfirmedNight;
+    if (state.hasConfirmedNight) {
+      $('confirmNightBtn').textContent = `⌛ รอคนอื่นยืนยัน... (${state.nightConfirmCount || 0}/${state.nightActiveCount || 1})`;
+      $('confirmNightBtn').style.opacity = '0.65';
+      $('confirmNightBtn').style.cursor = 'not-allowed';
+    } else {
+      $('confirmNightBtn').textContent = `✅ ยืนยันการกระทำ (${state.nightConfirmCount || 0}/${state.nightActiveCount || 1})`;
+      $('confirmNightBtn').style.opacity = '1';
+      $('confirmNightBtn').style.cursor = 'pointer';
+    }
   }
 
   if (state.phase === 'night_vote') {
     if (state.myRole === 'mafia') {
       $('voteTitle').textContent = '🔪 เลือกเหยื่อที่จะฆ่า';
-    } else if (state.myRole === 'doctor' && !state.doctorUsed) {
+    } else if (state.myRole === 'doctor') {
       $('voteTitle').textContent = '💉 เลือกคนที่จะช่วยชีวิต';
-    } else if (state.myRole === 'detective' && !state.detectiveUsed) {
+    } else if (state.myRole === 'detective') {
       $('voteTitle').textContent = '🔍 เลือกคนที่จะตรวจสอบ';
+    } else if (state.myRole === 'curious') {
+      $('voteTitle').textContent = '🤔 เลือกคนที่จะเฝ้าดูความเคลื่อนไหว';
     } else if (state.myRole === 'veteran') {
       $('voteTitle').textContent = '🎖️ ทหารผ่านศึก: ป้องกันตัวหรือไม่?';
-      // Keeping voteSection visible for Veteran to allow toggling or viewing players
     } else {
       $('voteSection').classList.add('hidden');
     }
@@ -651,16 +817,30 @@ function renderGameState(state) {
   renderPlayers(state);
 
   // Chat
-  const canChat = isLobby || isGameOver || 
+  const canChat = isLobby || isGameOver || !state.myAlive || 
     (state.phase === 'day_discuss' && state.myAlive) ||
     (state.phase === 'day_vote' && state.myAlive) ||
-    (state.phase === 'night_vote' && state.myRole === 'mafia' && state.myAlive);
+    (state.phase === 'night_vote' && state.myRole === 'mafia' && state.myAlive) ||
+    (state.phase === 'night_vote' && state.myRole === 'medium' && state.myAlive);
   
   $('chatInput').disabled = !canChat;
   $('chatSendBtn').disabled = !canChat;
   
-  if (state.phase === 'night_vote' && state.myRole === 'mafia') {
+  // Show/Hide Mafia secret chat toggle checkbox (only during Day phases)
+  const isMafia = state.myRole === 'mafia';
+  const showMafiaToggle = isMafia && state.myAlive && (state.phase === 'day_discuss' || state.phase === 'day_vote');
+  $('mafiaChatToggleArea').classList.toggle('hidden', !showMafiaToggle);
+
+  const isSendingToMafiaOnly = showMafiaToggle && $('sendToMafiaOnly') && $('sendToMafiaOnly').checked;
+
+  if (state.phase === 'night_vote' && state.myRole === 'mafia' && state.myAlive) {
     $('chatLabel').textContent = '🔴 แชทมาเฟีย';
+  } else if (isSendingToMafiaOnly) {
+    $('chatLabel').textContent = '🕵️‍♂️ แชทลับมาเฟีย';
+  } else if (!state.myAlive) {
+    $('chatLabel').textContent = '👻 ยมโลก (คนตาย)';
+  } else if (state.phase === 'night_vote' && state.myRole === 'medium' && state.myAlive) {
+    $('chatLabel').textContent = '🔮 ยมโลก (หมอผี)';
   } else {
     $('chatLabel').textContent = 'ทั้งหมด';
   }
@@ -685,7 +865,7 @@ function renderGameState(state) {
     const myTurnToAct = state.myAlive && (
       (state.phase === 'day_discuss' && !state.hasVotedSkipDiscuss) ||
       (state.phase === 'day_vote' && !state.hasConfirmedDay) ||
-      (state.phase === 'night_vote' && !state.hasConfirmedNight && ['mafia', 'doctor', 'detective', 'veteran'].includes(state.myRole))
+      (state.phase === 'night_vote' && !state.hasConfirmedNight && ['mafia', 'doctor', 'detective', 'veteran', 'curious'].includes(state.myRole))
     );
     
     panel.classList.toggle('pulse-glow', hasActiveAction && myTurnToAct);
@@ -714,6 +894,8 @@ function renderPhaseBanner(state) {
         sub.textContent = '💉 เลือกคนที่จะช่วยชีวิต...';
       } else if (state.myRole === 'detective' && state.myAlive) {
         sub.textContent = '🔍 เลือกคนที่จะตรวจสอบ...';
+      } else if (state.myRole === 'curious' && state.myAlive) {
+        sub.textContent = '🤔 เลือกคนที่จะเฝ้าดูความเคลื่อนไหว...';
       } else {
         sub.textContent = 'ทุกคนหลับ... มาเฟียกำลังเลือกเหยื่อ';
       }
@@ -851,6 +1033,8 @@ function renderPlayers(state) {
           helperBadge = `<div class="action-helper-badge" style="background:#2ecc71; box-shadow:0 0 10px rgba(46,204,113,0.55);">🛡️ ปกป้อง</div>`;
         } else if (state.myRole === 'detective') {
           helperBadge = `<div class="action-helper-badge" style="background:#3498db; box-shadow:0 0 10px rgba(52,152,219,0.55);">🔍 ค้นหา</div>`;
+        } else if (state.myRole === 'curious') {
+          helperBadge = `<div class="action-helper-badge" style="background:#ba68c8; box-shadow:0 0 10px rgba(186,104,200,0.55);">🤔 เฝ้าดู</div>`;
         }
       }
     }
@@ -910,6 +1094,9 @@ function handleVote(state, targetId) {
     } else if (state.myRole === 'detective') {
       socket.emit('detectiveCheck', { targetId });
       currentVote = targetId;
+    } else if (state.myRole === 'curious') {
+      socket.emit('curiousCheck', { targetId });
+      currentVote = targetId;
     }
   }
 }
@@ -962,6 +1149,18 @@ function renderGameLog(logs) {
 }
 
 function appendChat(msg) {
+  // Double-security check: If it's a private Mafia chat, non-mafia players must NEVER display it!
+  if (msg.isMafiaChat && gameState && gameState.myRole !== 'mafia') {
+    return;
+  }
+  // Double-security check: If it's a Ghost Chat (ยมโลก), alive players (who are not the living Medium at night) must NEVER see it!
+  if (msg.isGhostChat && gameState) {
+    const isLivingMediumAtNight = gameState.myRole === 'medium' && gameState.myAlive && gameState.phase === 'night_vote';
+    if (gameState.myAlive && !isLivingMediumAtNight) {
+      return;
+    }
+  }
+
   const container = $('chatMessages');
   const div = document.createElement('div');
   
@@ -971,9 +1170,9 @@ function appendChat(msg) {
   div.className = classes;
   
   if (msg.isSystem) {
-    div.innerHTML = `<strong>${escapeHtml(msg.senderName)}:</strong> <span style="color:${msg.color || 'var(--text)'}">${escapeHtml(msg.message)}</span>`;
+    div.innerHTML = `<strong>${escapeHtml(msg.senderName)}:</strong> <span style="color:${msg.color || 'var(--text)'}">${escapeHtml(msg.message).replace(/\n/g, '<br>')}</span>`;
   } else {
-    div.innerHTML = `<span class="sender">${escapeHtml(msg.senderName)}:</span> ${escapeHtml(msg.message)}`;
+    div.innerHTML = `<span class="sender">${escapeHtml(msg.senderName)}:</span> ${escapeHtml(msg.message).replace(/\n/g, '<br>')}`;
   }
   
   container.appendChild(div);
@@ -985,7 +1184,7 @@ function showRoleReveal(data) {
   currentVote = null;
   $('roleIcon').textContent = ROLE_ICONS[data.role] || '🎭';
   $('roleName').textContent = data.roleName;
-  $('roleDesc').textContent = ROLE_DESCS[data.role] || '';
+  $('roleDesc').innerHTML = ROLE_DESCS[data.role] || '';
   $('roleReveal').classList.remove('hidden');
   
   const card = document.querySelector('.role-reveal-card');
@@ -1101,7 +1300,7 @@ function showError(message) {
 }
 
 function getRoleNameTh(role) {
-  const names = { mafia:'มาเฟีย', villager:'ชาวบ้าน', doctor:'บอดี้กาด', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ', medium:'หมอผี' };
+  const names = { mafia:'มาเฟีย', villager:'ชาวบ้านธรรมดา', doctor:'บอดี้กาด', detective:'นักสืบ', jester:'ตัวตลก', veteran:'ทหารผ่านศึก', sheriff:'นายอำเภอ', medium:'หมอผี', curious:'เด็กขี้สงสัย' };
   return names[role] || role;
 }
 

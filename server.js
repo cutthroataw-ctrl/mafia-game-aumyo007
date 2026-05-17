@@ -20,7 +20,9 @@ const ROLES = {
   DETECTIVE: 'detective',
   VETERAN: 'veteran',
   SHERIFF: 'sheriff',
-  MEDIUM: 'medium'
+  MEDIUM: 'medium',
+  JESTER: 'jester',
+  CURIOUS: 'curious'
 };
 
 const FACTIONS = {
@@ -35,6 +37,7 @@ const ROLE_FACTION = {
   [ROLES.DOCTOR]: FACTIONS.GOOD,
   [ROLES.DETECTIVE]: FACTIONS.GOOD,
   [ROLES.JESTER]: FACTIONS.SPECIAL,
+  [ROLES.CURIOUS]: FACTIONS.GOOD,
   [ROLES.VETERAN]: FACTIONS.GOOD,
   [ROLES.SHERIFF]: FACTIONS.GOOD,
   [ROLES.MEDIUM]: FACTIONS.GOOD
@@ -42,10 +45,11 @@ const ROLE_FACTION = {
 
 const ROLE_NAMES_TH = {
   [ROLES.MAFIA]: 'มาเฟีย',
-  [ROLES.VILLAGER]: 'ชาวบ้าน',
+  [ROLES.VILLAGER]: 'ชาวบ้านธรรมดา',
   [ROLES.DOCTOR]: 'บอดี้กาด',
   [ROLES.DETECTIVE]: 'นักสืบ',
   [ROLES.JESTER]: 'ตัวตลก',
+  [ROLES.CURIOUS]: 'เด็กขี้สงสัย',
   [ROLES.VETERAN]: 'ทหารผ่านศึก',
   [ROLES.SHERIFF]: 'นายอำเภอ',
   [ROLES.MEDIUM]: 'หมอผี'
@@ -150,17 +154,15 @@ function assignRoles(room, customSettings) {
     for (let i = 0; i < mafiaCount; i++) roles.push(ROLES.MAFIA);
     
     if (customSettings.randomGoodRoles) {
-      // Randomly assign special roles to remaining spots
       const remainingCount = playerCount - roles.length;
-      const goodPool = [ROLES.DOCTOR, ROLES.DETECTIVE, ROLES.VETERAN, ROLES.SHERIFF, ROLES.MEDIUM];
-      
-      for (let i = 0; i < remainingCount; i++) {
-        // Each spot has a chance to be a special role or a villager
-        if (Math.random() > 0.4) { // 60% chance for a special role
-          const randomRole = goodPool[Math.floor(Math.random() * goodPool.length)];
+      if (remainingCount > 0) {
+        // Guaranteed at least one Detective
+        roles.push(ROLES.DETECTIVE);
+        
+        for (let i = 1; i < remainingCount; i++) {
+          const pool = [ROLES.DOCTOR, ROLES.DETECTIVE, ROLES.VETERAN, ROLES.SHERIFF, ROLES.MEDIUM, ROLES.CURIOUS];
+          const randomRole = pool[Math.floor(Math.random() * pool.length)];
           roles.push(randomRole);
-        } else {
-          roles.push(ROLES.VILLAGER);
         }
       }
     } else {
@@ -170,6 +172,7 @@ function assignRoles(room, customSettings) {
       if (customSettings.veteran) roles.push(ROLES.VETERAN);
       if (customSettings.sheriff) roles.push(ROLES.SHERIFF);
       if (customSettings.medium) roles.push(ROLES.MEDIUM);
+      if (customSettings.curious) roles.push(ROLES.CURIOUS);
 
       const remaining = playerCount - roles.length;
       for (let i = 0; i < remaining; i++) {
@@ -221,6 +224,7 @@ function getAliveGood(room) {
 function checkWinCondition(room) {
   const aliveMafia = getAliveMafia(room);
   const aliveGood = getAliveGood(room);
+  const aliveJester = getAlivePlayers(room).filter(p => p.role === ROLES.JESTER);
 
   if (room.jesterWin) {
     return { winner: FACTIONS.SPECIAL, reason: 'ตัวตลกถูกโหวตออก — ตัวตลกชนะ!' };
@@ -228,8 +232,8 @@ function checkWinCondition(room) {
   if (aliveMafia.length === 0) {
     return { winner: FACTIONS.GOOD, reason: 'มาเฟียถูกกำจัดหมดแล้ว — ฝ่ายดีชนะ!' };
   }
-  if (aliveMafia.length >= aliveGood.length) {
-    return { winner: FACTIONS.EVIL, reason: 'มาเฟียมีจำนวนเท่ากับหรือมากกว่าฝ่ายดี — ฝ่ายร้ายชนะ!' };
+  if (aliveMafia.length >= (aliveGood.length + aliveJester.length)) {
+    return { winner: FACTIONS.EVIL, reason: 'มาเฟียมีจำนวนเท่ากับหรือมากกว่าฝ่ายดีและตัวตลกรวมกัน — ฝ่ายร้ายชนะ!' };
   }
   return null;
 }
@@ -337,6 +341,7 @@ function emitGameState(room) {
         veteranAlert: room.phase === PHASES.NIGHT_VOTE && p.role === ROLES.VETERAN ? room.veteranAlerts.has(id) : false,
         veteranUsed: p.role === ROLES.VETERAN ? room.veteranUsed.has(id) : false,
         sheriffUsed: p.role === ROLES.SHERIFF ? room.sheriffUsed.has(id) : false,
+        curiousUsed: room.phase === PHASES.NIGHT_VOTE && p.role === ROLES.CURIOUS ? room.curiousCheck !== null : false,
         rolesInPlay: room.rolesInPlay || []
       };
       socket.emit('gameState', payload);
@@ -369,15 +374,12 @@ function startGame(room, customSettings) {
   
   // Notify each player of their role
   for (const [id, p] of room.players) {
-    const socket = io.sockets.sockets.get(id);
-    if (socket) {
-      socket.emit('roleAssigned', {
-        role: p.role,
-        roleName: ROLE_NAMES_TH[p.role],
-        faction: p.faction,
-        factionName: FACTION_NAMES_TH[p.faction]
-      });
-    }
+    io.to(id).emit('roleAssigned', {
+      role: p.role,
+      roleName: ROLE_NAMES_TH[p.role],
+      faction: p.faction,
+      factionName: FACTION_NAMES_TH[p.faction]
+    });
   }
 
   // Start starting phase with countdown (Exactly 3 seconds)
@@ -405,6 +407,7 @@ function startNight(room) {
   room.nightVotes = new Map();
   room.doctorSave = null;
   room.detectiveCheck = null;
+  room.curiousCheck = null;
   room.nightConfirmations.clear();
   room.veteranAlerts.clear();
   room.phase = PHASES.NIGHT_VOTE;
@@ -456,12 +459,20 @@ function resolveNight(room) {
 
   // Veteran kills visitors
   if (killedByMafia && room.veteranAlerts.has(killedByMafia)) {
-    // Kill mafia who voted for this veteran
+    // Kill mafia who voted for this veteran (only one chosen randomly if multiple voted)
+    let attackingMafia = [];
     for (const [mafiaId, targetId] of room.nightVotes) {
       if (targetId === killedByMafia) {
-        killedIds.add(mafiaId);
-        deathCauses.set(mafiaId, 'veteran');
+        const voter = room.players.get(mafiaId);
+        if (voter && voter.role === ROLES.MAFIA && voter.alive) {
+          attackingMafia.push(mafiaId);
+        }
       }
+    }
+    if (attackingMafia.length > 0) {
+      const chosenMafiaToDie = attackingMafia[Math.floor(Math.random() * attackingMafia.length)];
+      killedIds.add(chosenMafiaToDie);
+      deathCauses.set(chosenMafiaToDie, 'veteran');
     }
   }
   if (room.doctorSave && room.veteranAlerts.has(room.doctorSave)) {
@@ -480,6 +491,62 @@ function resolveNight(room) {
       }
     }
   }
+  if (room.curiousCheck && room.veteranAlerts.has(room.curiousCheck)) {
+    for (const [id, p] of room.players) {
+      if (p.role === ROLES.CURIOUS && p.alive) {
+        killedIds.add(id);
+        deathCauses.set(id, 'veteran');
+      }
+    }
+  }
+
+  // Compile night visits
+  const visits = [];
+  
+  // Mafia visits
+  for (const [voterId, targetId] of room.nightVotes) {
+    const voter = room.players.get(voterId);
+    const target = room.players.get(targetId);
+    if (voter && voter.alive && voter.role === ROLES.MAFIA && target) {
+      visits.push({ from: voterId, fromName: voter.name, to: targetId, toName: target.name, action: 'โจมตี' });
+    }
+  }
+  
+  // Doctor visits
+  if (room.doctorSave) {
+    for (const [id, p] of room.players) {
+      if (p.role === ROLES.DOCTOR && p.alive) {
+        const target = room.players.get(room.doctorSave);
+        if (target) {
+          visits.push({ from: id, fromName: p.name, to: room.doctorSave, toName: target.name, action: 'ปกป้อง' });
+        }
+      }
+    }
+  }
+
+  // Detective visits
+  if (room.detectiveCheck) {
+    for (const [id, p] of room.players) {
+      if (p.role === ROLES.DETECTIVE && p.alive) {
+        const target = room.players.get(room.detectiveCheck);
+        if (target) {
+          visits.push({ from: id, fromName: p.name, to: room.detectiveCheck, toName: target.name, action: 'ตรวจสอบ' });
+        }
+      }
+    }
+  }
+
+  // Curious Kid visits
+  if (room.curiousCheck) {
+    for (const [id, p] of room.players) {
+      if (p.role === ROLES.CURIOUS && p.alive) {
+        const target = room.players.get(room.curiousCheck);
+        if (target) {
+          visits.push({ from: id, fromName: p.name, to: room.curiousCheck, toName: target.name, action: 'เฝ้าดู' });
+        }
+      }
+    }
+  }
 
   // Apply deaths
   room.killedPlayers = [];
@@ -493,6 +560,31 @@ function resolveNight(room) {
       const roleText = reveal ? ` (บทบาท: ${ROLE_NAMES_TH[victim.role] || victim.role})` : '';
       const causeTh = cause === 'mafia' ? 'ถูกมาเฟียสังหาร' : 'ถูกทหารผ่านศึกป้องกันตัวยิงสวนดับ';
       addLog(room, `☀️ เช้าวันที่ ${room.round} — ${victim.name} ${causeTh}!${roleText}`);
+      
+      // If killed by mafia, they get to know which mafia killed them!
+      if (cause === 'mafia') {
+        const aliveMafia = getAlivePlayers(room).filter(p => p.role === ROLES.MAFIA);
+        if (aliveMafia.length > 0) {
+          let votingMafia = [];
+          for (const [voterId, targetId] of room.nightVotes) {
+            if (targetId === id) {
+              const voter = room.players.get(voterId);
+              if (voter && voter.role === ROLES.MAFIA && voter.alive) {
+                votingMafia.push(voter);
+              }
+            }
+          }
+          const mafiaPool = votingMafia.length > 0 ? votingMafia : aliveMafia;
+          const chosenKiller = mafiaPool[Math.floor(Math.random() * mafiaPool.length)];
+          
+          io.to(id).emit('chatMessage', {
+            senderName: '💀 ความจริงก่อนสิ้นลม',
+            message: `ก่อนสิ้นลมหายใจ คุณเห็นใบหน้าของ [${chosenKiller.name}] แวบเข้ามา! เขาคือมาเฟียผู้ลงมือปลิดชีพคุณ! 🔪`,
+            isSystem: true,
+            color: '#e74c3c'
+          });
+        }
+      }
     }
   }
 
@@ -501,8 +593,36 @@ function resolveNight(room) {
     room.veteranUsed.add(id);
   }
 
-  if (room.killedPlayers.length === 0) {
+  // Morning public chat announcements for night deaths
+  if (room.killedPlayers.length > 0) {
+    let announceLines = [`☀️ [ประกาศยามเช้า] คืนที่ผ่านมามีผู้เสียชีวิตดังนี้:`];
+    room.killedPlayers.forEach(victim => {
+      const roleText = room.revealRoleOnDeath !== false ? ` (บทบาท: ${ROLE_NAMES_TH[victim.role] || victim.role})` : '';
+      let causeText = '';
+      if (victim.cause === 'mafia') {
+        causeText = 'โดนมาเฟียฆ่าตาย 🔪';
+      } else if (victim.cause === 'veteran') {
+        causeText = 'ถูกทหารผ่านศึกฆ่าตาย 🎖️';
+      } else {
+        causeText = 'เสียชีวิตจากสาเหตุลึกลับ 👻';
+      }
+      announceLines.push(`💀 [${victim.name}] ${causeText}${roleText}`);
+    });
+    
+    io.to(room.code).emit('chatMessage', {
+      senderName: '📢 ประกาศจากหมู่บ้าน',
+      message: announceLines.join('\n'),
+      isSystem: true,
+      color: '#e74c3c'
+    });
+  } else {
     addLog(room, `☀️ เช้าวันที่ ${room.round} — ไม่มีใครถูกฆ่าเมื่อคืน`);
+    io.to(room.code).emit('chatMessage', {
+      senderName: '📢 ประกาศจากหมู่บ้าน',
+      message: `☀️ [ประกาศยามเช้า] เมื่อคืนที่ผ่านมานอนหลับสบายดี... ไม่มีใครเสียชีวิตในคืนนี้! 😊`,
+      isSystem: true,
+      color: '#2ecc71'
+    });
   }
 
   // Send result to detective
@@ -511,13 +631,49 @@ function resolveNight(room) {
     if (target) {
       for (const [id, p] of room.players) {
         if (p.role === ROLES.DETECTIVE && p.alive) {
-          const socket = io.sockets.sockets.get(id);
-          if (socket) {
-            socket.emit('detectiveResult', {
-              targetName: target.name,
-              isMafia: target.role === ROLES.MAFIA
+          io.to(id).emit('detectiveResult', {
+            targetName: target.name,
+            isMafia: target.role === ROLES.MAFIA
+          });
+        }
+      }
+    }
+  }
+
+  // Send Curious Kid report
+  if (room.curiousCheck) {
+    const targetId = room.curiousCheck;
+    const target = room.players.get(targetId);
+    if (target) {
+      for (const [curId, curPlayer] of room.players) {
+        if (curPlayer.role === ROLES.CURIOUS && curPlayer.alive) {
+          const outgoing = visits.filter(v => v.from === targetId);
+          const incoming = visits.filter(v => v.to === targetId && v.from !== curId);
+          
+          let reportLines = [`🕵️‍♂️ [รายงานเด็กขี้สงสัย] ผลการแอบซุ่มดูเป้าหมาย [${target.name}] คืนนี้:`];
+          
+          if (outgoing.length > 0) {
+            outgoing.forEach(v => {
+              reportLines.push(`👉 เขาแอบออกไปหา: [${v.toName}]`);
             });
+          } else {
+            reportLines.push(`👉 เขาไม่ได้แอบออกไปหาใครเลย`);
           }
+          
+          if (incoming.length > 0) {
+            incoming.forEach(v => {
+              reportLines.push(`👈 มีคนแอบเดินทางมาหาเขาเพื่อใช้แอคชั่น: [${v.fromName}]`);
+            });
+          } else {
+            reportLines.push(`👈 ไม่มีใครเดินทางมาหาเขาเลย`);
+          }
+          
+          io.to(curId).emit('chatMessage', {
+            senderName: '🕵️‍♂️ เด็กขี้สงสัย',
+            message: reportLines.join('\n'),
+            isSystem: true,
+            color: '#ba68c8'
+          });
         }
       }
     }
@@ -821,6 +977,22 @@ io.on('connection', (socket) => {
     emitGameState(room);
   });
 
+  socket.on('curiousCheck', ({ targetId }) => {
+    if (!currentRoom) return;
+    const room = rooms.get(currentRoom);
+    if (!room || room.phase !== PHASES.NIGHT_VOTE) return;
+    
+    const player = room.players.get(socket.id);
+    if (!player || !player.alive || player.role !== ROLES.CURIOUS) return;
+    
+    const target = room.players.get(targetId);
+    if (!target || !target.alive) return;
+
+    room.curiousCheck = targetId;
+    
+    emitGameState(room);
+  });
+
   socket.on('veteranAlert', () => {
     if (!currentRoom) return;
     const room = rooms.get(currentRoom);
@@ -958,7 +1130,7 @@ io.on('connection', (socket) => {
     emitGameState(room);
   });
 
-  socket.on('chatMessage', ({ message }) => {
+  socket.on('chatMessage', ({ message, toMafiaOnly }) => {
     if (!currentRoom) return;
     const room = rooms.get(currentRoom);
     if (!room) return;
@@ -992,7 +1164,7 @@ io.on('connection', (socket) => {
       // Send to all dead players + living Mediums (only at night)
       for (const [id, p] of room.players) {
         if (!p.alive || (p.role === ROLES.MEDIUM && p.alive && room.phase === PHASES.NIGHT_VOTE)) {
-          io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
+          io.to(id).emit('chatMessage', msgData);
         }
       }
       return;
@@ -1011,7 +1183,7 @@ io.on('connection', (socket) => {
         };
         for (const [id, p] of room.players) {
           if (p.role === ROLES.MAFIA) {
-            io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
+            io.to(id).emit('chatMessage', msgData);
           }
         }
       } else if (player.role === ROLES.MEDIUM) {
@@ -1026,7 +1198,7 @@ io.on('connection', (socket) => {
         };
         for (const [id, p] of room.players) {
           if (!p.alive || (p.role === ROLES.MEDIUM && p.alive)) {
-            io.sockets.sockets.get(id)?.emit('chatMessage', msgData);
+            io.to(id).emit('chatMessage', msgData);
           }
         }
       }
@@ -1035,6 +1207,23 @@ io.on('connection', (socket) => {
 
     // Alive player chat during day
     if (room.phase === PHASES.DAY_DISCUSS || room.phase === PHASES.DAY_VOTE) {
+      if (toMafiaOnly && player.role === ROLES.MAFIA) {
+        // Private Mafia Chat during the day!
+        const msgData = {
+          senderId: socket.id,
+          senderName: `🕵️‍♂️ [มาเฟียลับ] ${player.name}`,
+          message,
+          isMafiaChat: true,
+          timestamp: Date.now()
+        };
+        for (const [id, p] of room.players) {
+          if (p.role === ROLES.MAFIA) {
+            io.to(id).emit('chatMessage', msgData);
+          }
+        }
+        return;
+      }
+
       io.to(currentRoom).emit('chatMessage', {
         senderId: socket.id,
         senderName: player.name,

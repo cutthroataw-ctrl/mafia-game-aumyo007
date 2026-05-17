@@ -101,6 +101,9 @@
               <div class="setting-item">
                 <label><input type="checkbox" id="settingSheriff"> 🤠 นายอำเภอ (ยิงคนตอนกลางวันได้ 1 ครั้ง)</label>
               </div>
+              <div class="setting-item">
+                <label><input type="checkbox" id="settingCurious"> 🕵️‍♂️ เด็กขี้สงสัย (ซุ่มส่องบ้าน 1 คนตอนกลางคืน)</label>
+              </div>
             </div>
             
             <hr style="border-color: var(--border); margin: 15px 0;">
@@ -129,6 +132,15 @@
           <div class="my-role-badge hidden" id="myRoleBadge">
             <span class="my-role-icon" id="myRoleIcon">🎭</span>
             <span class="my-role-text" id="myRoleText">บทบาท</span>
+          </div>
+
+          <!-- My Role Description box -->
+          <div class="my-role-desc-box hidden" id="myRoleDescBox" style="margin-top: -5px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 12px 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: all 0.3s;">
+            <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;" id="toggleRoleDescBtn">
+              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">📖 คำอธิบายความสามารถและหน้าที่</span>
+              <span id="roleDescToggleIcon" style="font-size: 0.85rem; color: var(--text-dim);">▼</span>
+            </div>
+            <div id="myRoleDescContent" style="display: none; margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px;"></div>
           </div>
 
           <!-- Global Timer Display -->
@@ -200,6 +212,10 @@
               <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." maxlength="200">
               <button id="chatSendBtn">ส่ง</button>
             </div>
+            <div id="mafiaChatToggleArea" class="hidden" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem; color: #ff9999; padding: 6px 12px; background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px;">
+              <input type="checkbox" id="sendToMafiaOnly" style="cursor: pointer; width: 15px; height: 15px; accent-color: #e74c3c;">
+              <label for="sendToMafiaOnly" style="cursor: pointer; user-select: none; font-weight: 500;">🕵️‍♂️ ส่งเข้าแชทลับมาเฟีย (ลับเฉพาะกลุ่ม)</label>
+            </div>
           </div>
 
           <!-- Game Log -->
@@ -236,46 +252,139 @@
 
   <!-- Rules Modal -->
   <div class="modal-overlay hidden" id="rulesModal">
-    <div class="modal-card">
-      <h2>📖 กฎเกม</h2>
-      <div class="rules-content">
-        <div class="rule-section">
-          <h3>🎯 เป้าหมาย</h3>
-          <p><strong style="color:var(--accent-good)">ฝ่ายดี:</strong> หาและกำจัดมาเฟียให้หมด</p>
-          <p><strong style="color:var(--accent-evil)">ฝ่ายร้าย:</strong> ฆ่าฝ่ายดีจนเหลือน้อยกว่าหรือเท่ากับมาเฟีย</p>
-          <p><strong style="color:var(--accent-special)">ตัวตลก:</strong> ทำให้ตัวเองถูกโหวตออกตอนกลางวัน</p>
+    <div class="modal-card" style="max-width: 600px; padding: 25px;">
+      <h2 style="font-size: 1.8rem; margin-bottom: 15px;">📖 วิธีการเล่นและกฎกติกา</h2>
+      <div class="rules-content" style="text-align: left;">
+        
+        <!-- Section: Objective & Game Flow -->
+        <div class="rule-section" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">🎯 เป้าหมายการชนะของแต่ละฝ่าย</h3>
+          <p><strong style="color:#2ecc71;">🟢 ฝ่ายดี (Good):</strong> ร่วมมือกันสืบหาและโหวตกำจัดมาเฟียทั้งหมดออกไปจากหมู่บ้าน</p>
+          <p><strong style="color:#e74c3c;">🔴 ฝ่ายมาเฟีย (Evil):</strong> ลอบฆ่าและป้ายสีคนดีจนจำนวนคนดีเหลือน้อยกว่าหรือเท่ากับมาเฟีย</p>
+          <p><strong style="color:#f1c40f;">🟡 ฝ่ายอิสระ (Neutral):</strong> ปั่นป่วนให้คนโหวตตัวเองออกตอนกลางวัน (สำหรับตัวตลก)</p>
         </div>
-        <div class="rule-section">
-          <h3>🌙 กลางคืน</h3>
-          <p>🔪 <strong>มาเฟีย</strong> — เลือกฆ่าคนหนึ่ง (โหวตร่วมกัน)</p>
-          <p>💉 <strong>หมอ</strong> — เลือกช่วยชีวิตคนหนึ่ง</p>
-          <p>🔍 <strong>นักสืบ</strong> — ตรวจสอบว่าใครเป็นมาเฟีย</p>
+
+        <div class="rule-section" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">⏰ ลำดับขั้นตอนการเล่น (Day & Night)</h3>
+          <p>🌙 <strong>ช่วงเวลากลางคืน:</strong> ผู้เล่นที่มีบทบาทพิเศษ (มาเฟีย, หมอ, นักสืบ, ทหารผ่านศึก, หมอผี) จะทำหน้าที่ลับของตัวเองผ่านระบบปุ่มควบคุม</p>
+          <p style="margin-top: 8px;">☀️ <strong>ช่วงเวลากลางวัน:</strong> ทุกคนจะฟื้นขึ้นมาพบรายงานว่ามีใครตายหรือไม่ จากนั้นพูดคุยตกลงและทำการโหวตคนต้องสงสัยเพื่อกำจัดออกจากหมู่บ้าน</p>
         </div>
-        <div class="rule-section">
-          <h3>☀️ กลางวัน</h3>
-          <p>💬 พูดคุยกัน (90 วินาที)</p>
-          <p>🗳️ โหวตกำจัดคนออกจากหมู่บ้าน (ต้องได้เสียงข้างมาก)</p>
+
+        <!-- Section: Detailed Roles by Factions -->
+        <div class="rule-section" style="margin-bottom: 20px;">
+          <h3 style="font-size: 1.2rem; text-align: center; margin-bottom: 15px; color: var(--accent2);">🎭 คำอธิบายบทบาทและหน้าที่อย่างละเอียด</h3>
+          
+          <!-- Faction: Mafia -->
+          <div style="background: rgba(231, 76, 60, 0.08); border-left: 4px solid #e74c3c; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+            <h4 style="color:#e74c3c; font-size: 1.05rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">🔴 ฝ่ายมาเฟีย (Evil Faction)</h4>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5;">
+              🔪 <strong>มาเฟีย (Mafia):</strong> แอบร่วมมือเลือกเป้าหมายฆ่าคนดี 1 คนในทุกคืน และป้ายความผิดให้ผู้อื่นในตอนกลางวันเพื่อเอาชีวิตรอด
+            </p>
+          </div>
+
+          <!-- Faction: Good -->
+          <div style="background: rgba(46, 204, 113, 0.08); border-left: 4px solid #2ecc71; border-radius: 8px; padding: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+            <h4 style="color:#2ecc71; font-size: 1.05rem; margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">🟢 ฝ่ายดี (Good Faction)</h4>
+            
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5;">
+              🧑‍🌾 <strong>ชาวบ้านธรรมดา (Villager):</strong> ไม่มีพลังในตอนกลางคืน แต่ใช้เสียงโหวตตอนกลางวันในการกำจัดมาเฟีย
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🛡️ <strong>บอดี้กาด (Bodyguard):</strong> ในแต่ละคืน เลือกผู้เล่น 1 คนเพื่อปกป้องจากการถูกมาเฟียฆ่า (สามารถปกป้องตัวเองได้)
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🔍 <strong>นักสืบ (Detective):</strong> ในแต่ละคืน เลือกสืบผู้เล่น 1 คน เพื่อเช็คว่าเป็นมาเฟียหรือคนดี
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🎖️ <strong>ทหารผ่านศึก (Veteran):</strong> มีสิทธิ์กดใช้พลัง "ป้องกันตัว" 1 ครั้งต่อเกม หากคืนนั้นมีคนมาหา (มาเฟียฆ่า, หมอรักษา, นักสืบตรวจ) ทุกคนที่มาจะถูกยิงย้อนดับอนาถ!
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🔮 <strong>หมอผี (Medium):</strong> ในตอนกลางคืน สามารถแอบเข้าร่วมแชทยมโลกเพื่อคุยกับวิญญาณคนตายเพื่อรวบรวมเบาะแสช่วยชาวบ้าน
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🤠 <strong>นายอำเภอ (Sheriff):</strong> ในตอนกลางวัน สามารถสั่งยิงเป้าหมายที่สงสัยได้ทันที 1 ครั้ง (ทุกคนจะเห็นฉากยิง) แต่หากเป้าหมายเป็นคนดี นายอำเภอจะตรอมใจตายตามไปด้วยทันที!
+            </p>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🕵️‍♂️ <strong>เด็กขี้สงสัย (Curious Kid):</strong> ในตอนกลางคืน เลือกผู้เล่น 1 คนเพื่อเฝ้าดู ในตอนเช้าคุณจะได้รับรายงานพิเศษว่าคนๆ นั้นแอบออกจากบ้านไปกระทำการกับใคร หรือมีใครแอบเดินทางเข้ามาทำอะไรที่บ้านของเขาบ้าง!
+            </p>
+          </div>
+
+          <!-- Faction: Neutral -->
+          <div style="background: rgba(241, 196, 15, 0.08); border-left: 4px solid #f1c40f; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+            <h4 style="color:#f1c40f; font-size: 1.05rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">🟡 ฝ่ายอิสระ (Neutral Faction)</h4>
+            <p style="color: #fff; font-size: 0.88rem; margin: 0; line-height: 1.5;">
+              🤡 <strong>ตัวตลก (Jester):</strong> ไม่มีฝ่าย เป้าหมายคือทำตัวน่าสงสัยเพื่อให้ชาวบ้านลงคะแนนโหวตกำจัดคุณออกในตอนกลางวัน หากถูกโหวตออกได้สำเร็จ คุณจะเป็นผู้ชนะเดี่ยวทันที!
+            </p>
+          </div>
         </div>
-        <div class="rule-section">
+
+        <!-- Section: Player Distribution Table -->
+        <div class="rule-section" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px;">
+          <h3 style="font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px; text-align: center;">📊 ตารางจำนวนบทบาทมาตรฐานตามผู้เล่น</h3>
           <table class="rules-table">
-            <tr><th>คน</th><th>🔪</th><th>👨‍🌾</th><th>💉</th><th>🔍</th><th>🤡</th><th>อื่นๆ</th></tr>
-            <tr><td>4</td><td>1</td><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-            <tr><td>5</td><td>1</td><td>2</td><td>1</td><td>1</td><td>-</td><td>-</td></tr>
-            <tr><td>6</td><td>2</td><td>2</td><td>1</td><td>1</td><td>-</td><td>-</td></tr>
-            <tr><td>7</td><td>2</td><td>2</td><td>1</td><td>1</td><td>1</td><td>-</td></tr>
-            <tr><td>8-10</td><td>3</td><td>...</td><td>1</td><td>1</td><td>1</td><td>ตั้งค่าได้</td></tr>
+            <thead>
+              <tr style="background: rgba(255,255,255,0.08);">
+                <th style="padding: 8px; font-weight: bold;">ผู้เล่น</th>
+                <th style="color:#e74c3c; padding: 8px; font-weight: bold;">🔪 มาเฟีย</th>
+                <th style="color:#2ecc71; padding: 8px; font-weight: bold;">🧑‍🌾 ชาวบ้าน</th>
+                <th style="color:#2ecc71; padding: 8px; font-weight: bold;">🛡️ บอดี้กาด</th>
+                <th style="color:#2ecc71; padding: 8px; font-weight: bold;">🔍 นักสืบ</th>
+                <th style="color:#f1c40f; padding: 8px; font-weight: bold;">🤡 ตัวตลก</th>
+                <th style="padding: 8px; font-weight: bold;">อื่นๆ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>4 คน</td>
+                <td style="color:#e74c3c; font-weight: bold;">1</td>
+                <td>3</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>5 คน</td>
+                <td style="color:#e74c3c; font-weight: bold;">1</td>
+                <td>2</td>
+                <td>1</td>
+                <td>1</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>6 คน</td>
+                <td style="color:#e74c3c; font-weight: bold;">2</td>
+                <td>2</td>
+                <td>1</td>
+                <td>1</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>7 คน</td>
+                <td style="color:#e74c3c; font-weight: bold;">2</td>
+                <td>2</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>-</td>
+              </tr>
+              <tr>
+                <td>8-10 คน</td>
+                <td style="color:#e74c3c; font-weight: bold;">3</td>
+                <td>...</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>ปรับตั้งค่าได้</td>
+              </tr>
+            </tbody>
           </table>
         </div>
-        <div class="rule-section">
-          <h3>🌟 บทบาทพิเศษ (ถ้าเปิดใช้)</h3>
-          <p>🤡 <strong>ตัวตลก (Jester)</strong> — ฝ่ายอิสระ ชนะเมื่อถูกโหวตออกตอนกลางวัน</p>
-          <p>🎖️ <strong>ทหารผ่านศึก (Veteran)</strong> — ฝ่ายดี ป้องกันตัวตอนกลางคืนได้ 1 ครั้ง (คนที่มาหาจะตายทั้งหมด)</p>
-          <p>🔮 <strong>หมอผี (Medium)</strong> — ฝ่ายดี แอบอ่านข้อความและคุยกับคนตายได้ในตอนกลางคืน</p>
-          <p>💉 <strong>บอดี้กาด (Bodyguard)</strong> — ฝ่ายดี เลือกปกป้อง 1 คนในตอนกลางคืน</p>
-          <p>🤠 <strong>นายอำเภอ (Sheriff)</strong> — ฝ่ายดี ยิงคนตอนกลางวันได้ 1 ครั้ง ถ้ายิงคนดี ตัวเองจะตายแทน</p>
-        </div>
+
       </div>
-      <button class="btn btn-primary" id="closeRulesBtn" style="max-width:200px;margin:15px auto 0;">เข้าใจแล้ว!</button>
+      <button class="btn btn-primary" id="closeRulesBtn" style="max-width:200px; margin:20px auto 0; display: block;">เข้าใจแล้ว!</button>
     </div>
   </div>
 
