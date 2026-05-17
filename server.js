@@ -258,7 +258,7 @@ function getPublicPlayerList(room, requesterId) {
     const isRequester = id === requesterId;
     const requesterPlayer = room.players.get(requesterId);
     const isMafiaTeam = requesterPlayer && requesterPlayer.role === ROLES.MAFIA && p.role === ROLES.MAFIA;
-    const showRole = isRequester || (!p.alive && room.revealRoleOnDeath !== false) || room.phase === PHASES.GAME_OVER;
+    const showRole = isRequester || isMafiaTeam || (!p.alive && room.revealRoleOnDeath !== false) || room.phase === PHASES.GAME_OVER;
     
     players.push({
       id: id,
@@ -309,6 +309,7 @@ function emitGameState(room) {
         myFaction: p.faction,
         myAlive: p.alive,
         timerEnd: room.timerEnd,
+        timer: typeof room.timer === 'number' ? room.timer : null,
         timerDuration: room.phase === PHASES.NIGHT_VOTE ? room.customTimers.NIGHT_VOTE :
                        room.phase === PHASES.DAY_ANNOUNCE ? TIMERS.DAY_ANNOUNCE :
                        room.phase === PHASES.DAY_DISCUSS ? room.customTimers.DAY_DISCUSS :
@@ -379,12 +380,12 @@ function startGame(room, customSettings) {
     }
   }
 
-  // Start starting phase with countdown
+  // Start starting phase with countdown (Exactly 3 seconds)
   room.phase = PHASES.STARTING;
-  room.timer = 6;
+  room.timer = 3;
   emitGameState(room);
 
-  let countdown = 6;
+  let countdown = 3;
   const countdownInterval = setInterval(() => {
     countdown--;
     if (countdown > 0) {

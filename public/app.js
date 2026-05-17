@@ -118,39 +118,7 @@ function playGunshotSound() {
   } catch(e) {}
 }
 
-function startClientCountdown(callback) {
-  const overlay = $('countdownOverlay');
-  const text = $('countdownText');
-  overlay.classList.remove('hidden');
-  
-  let count = 3;
-  text.textContent = count;
-  text.style.animation = 'none';
-  text.offsetHeight; // trigger reflow
-  text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-  playTone(550, 0.12, 'sine', 0.15); // Tick sound
-  
-  const interval = setInterval(() => {
-    count--;
-    if (count > 0) {
-      text.textContent = count;
-      text.style.animation = 'none';
-      text.offsetHeight; // trigger reflow
-      text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      playTone(550, 0.12, 'sine', 0.15); // Tick sound
-    } else if (count === 0) {
-      text.textContent = 'เริ่มเกม!';
-      text.style.animation = 'none';
-      text.offsetHeight;
-      text.style.animation = 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      playTone(820, 0.35, 'sine', 0.18); // GO! sound
-    } else {
-      clearInterval(interval);
-      overlay.classList.add('hidden');
-      if (callback) callback();
-    }
-  }, 1000);
-}
+
 
 function triggerDeathCutscene(name, cause, callback) {
   const overlay = $('deathCutscene');
@@ -491,7 +459,6 @@ function bindEvents() {
   $('roleOkBtn').onclick = () => {
     if (roleRevealInterval) clearInterval(roleRevealInterval);
     $('roleReveal').classList.add('hidden');
-    startClientCountdown();
   };
 
   $('playAgainBtn').onclick = () => {
@@ -848,7 +815,10 @@ function renderPlayers(state) {
     if (!p.alive) classes += ' dead';
     if (p.isMafiaTeam && state.myRole === 'mafia') classes += ' mafia-team';
     
-    const isVotable = canVote && p.alive && p.id !== socket.id;
+    let isVotable = canVote && p.alive && p.id !== socket.id;
+    if (state.phase === 'night_vote' && state.myRole === 'mafia' && p.isMafiaTeam) {
+      isVotable = false;
+    }
     if (isVotable) classes += ' votable';
     if (currentVote === p.id) classes += ' voted pulse';
     
@@ -1021,8 +991,8 @@ function showRoleReveal(data) {
   const card = document.querySelector('.role-reveal-card');
   card.style.borderColor = FACTION_COLORS[data.faction] || 'var(--accent2)';
 
-  // Auto-close countdown
-  let secondsLeft = 5;
+  // Auto-close countdown (Exactly 3 seconds matching the server starting countdown)
+  let secondsLeft = 3;
   const okBtn = $('roleOkBtn');
   okBtn.textContent = `เข้าใจแล้ว! (${secondsLeft})`;
   
