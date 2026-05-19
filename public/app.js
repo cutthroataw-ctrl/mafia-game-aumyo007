@@ -151,6 +151,7 @@ let soundEnabled = true;
 let lastDeathSoundRound = 0;
 let lastPhase = null;
 let audioCtx = null;
+let lastGameOverData = null;
 
 // ================== DOM ELEMENTS ==================
 const $ = id => document.getElementById(id);
@@ -479,6 +480,11 @@ function connectSocket() {
   socket.on('error', ({ message }) => {
     showError(message);
   });
+
+  socket.on('kicked', ({ message }) => {
+    alert(message || 'คุณถูกเตะออกจากห้อง');
+    window.location.reload();
+  });
 }
 
 // ================== EVENTS ==================
@@ -693,6 +699,16 @@ function renderGameState(state) {
   const isGameOver = state.phase === 'game_over';
   if (isLobby) {
     $('gameOverPanel').classList.add('hidden');
+    $('gameLog').classList.remove('game-log-expanded');
+    lastGameOverData = null;
+  }
+  if (isGameOver) {
+    renderGameOverPanel({
+      winnerName: state.winResult?.winnerName,
+      reason: state.winResult?.reason,
+      deathHistory: state.deathHistory,
+      gameLog: state.gameLog
+    });
   }
   $('leaveLobbyBtn').classList.toggle('hidden', !isLobby);
 
@@ -1057,6 +1073,21 @@ function renderPlayers(state) {
       <div class="avatar" style="font-size: 1.4rem; margin-top: 6px;">${AVATARS[p.avatar] || '😎'}</div>
     `;
 
+    // Host kick button (lobby only)
+    if (state.isHost && state.phase === 'lobby' && p.id !== socket.id) {
+      const kickBtn = document.createElement('button');
+      kickBtn.className = 'kick-player-btn';
+      kickBtn.textContent = '🚫 เตะ';
+      kickBtn.title = `เตะ ${p.name} ออกจากห้อง`;
+      kickBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`เตะ ${p.name} ออกจากห้อง?`)) {
+          socket.emit('kickPlayer', { targetId: p.id });
+        }
+      };
+      card.appendChild(kickBtn);
+    }
+
     // Sheriff Shoot Button
     if (state.myRole === 'sheriff' && state.myAlive && !state.sheriffUsed && ['day_discuss', 'day_vote'].includes(state.phase) && p.alive && p.id !== socket.id) {
       const shootBtn = document.createElement('button');
@@ -1143,16 +1174,124 @@ function updateTimer(state) {
   timerInterval = setInterval(tick, 1000);
 }
 
+function formatDeathHistoryLine(d) {
+  const roleText = d.victimRoleName ? ` [${d.victimRoleName}]` : '';
+  let whenLabel = '';
+  if (d.phase === 'night') whenLabel = `🌙 คืนที่ ${d.round}`;
+  else if (d.phase === 'day_vote') whenLabel = `☀️ เช้าวันที่ ${d.round} (โหวต)`;
+  else if (d.phase === 'day_sheriff') whenLabel = `☀️ เช้าวันที่ ${d.round} (นายอำเภอ)`;
+  else whenLabel = `รอบที่ ${d.round}`;
+
+  let actionText = '';
+  switch (d.cause) {
+    case 'mafia':
+      actionText = d.killerName ? `ถูกมาเฟีย "${d.killerName}" สังหาร 🔪` : 'ถูกมาเฟียสังหาร 🔪';
+      break;
+    case 'mafia_team':
+      actionText = d.killerName ? `ถูกมาเฟีย (${d.killerName}) สังหาร 🔪` : 'ถูกมาเฟียสังหาร 🔪';
+      break;
+    case 'veteran':
+      actionText = d.killerName ? `ถูกทหารผ่านศึก "${d.killerName}" ยิงสวน 🎖️` : 'ถูกทหารผ่านศึกยิงสวน 🎖️';
+      break;
+    case 'vote':
+      actionText = d.voters && d.voters.length
+        ? `ถูกโหวตกำจัด 🗳️ (โดย: ${d.voters.join(', ')})`
+        : 'ถูกโหวตกำจัด 🗳️';
+      break;
+    case 'sheriff':
+      actionText = d.killerName ? `ถูกนายอำเภอ "${d.killerName}" ยิง 🤠` : 'ถูกนายอำเภอยิง 🤠';
+      break;
+    case 'sheriff_backfire':
+      actionText = d.killerName ? `นายอำเภอยิงผิดคน ตายตาม (เพราะยิง "${d.killerName}") 💔` : 'นายอำเภอยิงผิดคน ตายตาม 💔';
+      break;
+    default:
+      actionText = 'เสียชีวิต';
+  }
+  return `${d.index}. ${whenLabel} — 💀 ${d.victimName}${roleText} ${actionText}`;
+}
+
+function renderDeathHistory(container, deathHistory) {
+  if (!container) return;
+  if (!deathHistory || deathHistory.length === 0) {
+    container.innerHTML = '<motion class="death-history-empty">ยังไม่มีผู้เสียชีวิตในเกมนี้</motion>';
+    return;
+  }
+  container.innerHTML = deathHistory
+    .map((d, i) => {
+      const entry = { ...d, index: i + 1 };
+      const line = formatDeathHistoryLine(entry);
+      const isNight = (d.rawLine && d.rawLine.includes('🌙')) || d.phase === 'night';
+      return `<div class="death-history-line ${isNight ? 'death-night' : 'death-day'}">${escapeHtml(line)}</motion>`;
+    })
+    .join('');
+}
+
+function parseDeathHistoryFromGameLog(logs) {
+  const entries = [];
+  if (!logs) return entries;
+  for (const log of logs) {
+    if (!log.message || !log.message.includes('— 💀')) continue;
+    log.message.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (/^\d+\.\s*(🌙|☀️)/.test(trimmed)) {
+        entries.push({ rawLine: trimmed });
+      }
+    });
+  }
+  return entries;
+}
+
+function resolveDeathHistoryList(data) {
+  if (data.deathHistory && data.deathHistory.length > 0) return data.deathHistory;
+  return parseDeathHistoryFromGameLog(data.gameLog);
+}
+
+function renderGameOverPanel(data) {
+  const panel = $('gameOverPanel');
+  if (!panel || !data) return;
+  panel.classList.remove('hidden');
+
+  $('gameOverOverlay')?.classList.add('hidden');
+  $('announcementArea')?.classList.add('hidden');
+  const actionPanel = document.querySelector('.action-panel:not(#gameOverPanel)');
+  if (actionPanel) actionPanel.style.display = 'none';
+
+  if (data.winnerName) {
+    $('winnerTextNative').textContent = `${data.winnerName}ชนะ!`;
+    if (data.winnerName.includes('ฝ่ายดี')) {
+      $('winnerTextNative').style.color = '#4caf50';
+    } else if (data.winnerName.includes('มาเฟีย')) {
+      $('winnerTextNative').style.color = '#e74c3c';
+    } else if (data.winnerName.includes('ตัวตลก')) {
+      $('winnerTextNative').style.color = '#ffd700';
+    } else {
+      $('winnerTextNative').style.color = 'var(--accent2)';
+    }
+  }
+  if (data.reason) $('winReasonNative').textContent = data.reason;
+
+  renderDeathHistory($('deathHistoryNative'), resolveDeathHistoryList(data));
+}
+
 function renderGameLog(logs) {
   const container = $('logEntries');
+  const logPanel = $('gameLog');
   container.innerHTML = '';
   if (!logs) return;
   logs.forEach(log => {
     const div = document.createElement('div');
     div.className = 'log-entry';
+    if (log.message && log.message.includes('[สรุปผลการแข่งขัน]')) {
+      div.classList.add('log-entry-summary', 'log-entry-result');
+    } else if (log.message && log.message.includes('[ประวัติการเสียชีวิต]')) {
+      div.classList.add('log-entry-summary', 'log-entry-deaths');
+    }
     div.textContent = log.message;
     container.appendChild(div);
   });
+  if (logPanel && logs.some(l => l.message && l.message.includes('[สรุปผลการแข่งขัน]'))) {
+    logPanel.classList.add('game-log-expanded');
+  }
   container.scrollTop = container.scrollHeight;
 }
 
@@ -1216,71 +1355,23 @@ function showRoleReveal(data) {
 }
 
 function showGameOver(data) {
-  // Ensure the popup overlay is hidden completely
-  $('gameOverOverlay').classList.add('hidden');
-  
-  // Show native game over dashboard panel
+  lastGameOverData = {
+    winnerName: data.winnerName,
+    reason: data.reason,
+    deathHistory: data.deathHistory,
+    gameLog: gameState?.gameLog
+  };
+  renderGameOverPanel(lastGameOverData);
+
   const panel = $('gameOverPanel');
-  panel.classList.remove('hidden');
-  
-  // Hide active announcement area and regular action panel
-  $('announcementArea').classList.add('hidden');
-  const actionPanel = document.querySelector('.action-panel:not(#gameOverPanel)');
-  if (actionPanel) actionPanel.style.display = 'none';
-
-  $('winnerTextNative').textContent = `${data.winnerName}ชนะ!`;
-  
-  // Dynamic color for the winning faction
-  if (data.winnerName.includes('ฝ่ายดี')) {
-    $('winnerTextNative').style.color = '#4caf50';
-  } else if (data.winnerName.includes('มาเฟีย')) {
-    $('winnerTextNative').style.color = '#e74c3c';
-  } else if (data.winnerName.includes('ตัวตลก')) {
-    $('winnerTextNative').style.color = '#ffd700';
-  } else {
-    $('winnerTextNative').style.color = 'var(--accent2)';
-  }
-  
-  $('winReasonNative').textContent = data.reason;
-  
-  // Populate player summary grid
-  const container = $('resultPlayersNative');
-  container.innerHTML = '';
-  data.players.forEach(p => {
-    const div = document.createElement('div');
-    const bg = FACTION_COLORS[p.faction] || 'var(--accent2)';
-    div.style.cssText = `
-      background: ${bg}15;
-      color: ${bg};
-      border: 1px solid ${bg}33;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s;
-    `;
-    
-    // Add death indicator or alive indicator
-    const nameStr = p.alive ? `😊 ${escapeHtml(p.name)}` : `💀 ${escapeHtml(p.name)}`;
-    const roleStr = `<span style="font-weight:700; filter: drop-shadow(0 0 5px ${bg}aa);">${ROLE_ICONS[p.role] || ''} ${p.roleName}</span>`;
-    
-    div.innerHTML = `
-      <span style="font-weight: 500;">${nameStr}</span>
-      <span>${roleStr}</span>
-    `;
-    container.appendChild(div);
-  });
-
-  // Bind native action buttons
   $('playAgainBtnNative').onclick = () => {
     panel.classList.add('hidden');
+    lastGameOverData = null;
     socket.emit('returnToLobby');
   };
   $('leaveRoomBtnNative').onclick = () => {
     panel.classList.add('hidden');
+    lastGameOverData = null;
     window.location.reload();
   };
 }

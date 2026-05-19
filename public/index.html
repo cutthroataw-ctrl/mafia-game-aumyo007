@@ -81,7 +81,7 @@
               <input type="number" id="settingMafia" min="1" max="5" value="1" style="width:60px; padding:4px; text-align:center; background:var(--bg-dark); color:white; border:1px solid var(--border); border-radius:4px;">
             </div>
             <div class="setting-item">
-              <label><input type="checkbox" id="settingRandomGood"> 🎲 สุ่มบทบาทฝ่ายดีทั้งหมด</label>
+              <label><input type="checkbox" id="settingRandomGood"> 🎲 สุ่มบทบาทพิเศษทั้งหมด (แต่ละบทบาทไม่เกิน 1 คน)</label>
             </div>
             <div id="manualRoleSettings">
               <div class="setting-item">
@@ -136,18 +136,18 @@
           </div>
 
           <!-- My Role Description box -->
-          <div class="my-role-desc-box hidden" id="myRoleDescBox" style="margin-top: -5px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 12px 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: all 0.3s;">
+          <div class="my-role-desc-box hidden" id="myRoleDescBox" style="margin-top: -4px; margin-bottom: 10px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 10px; padding: 10px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.12); transition: all 0.3s;">
             <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;" id="toggleRoleDescBtn">
-              <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">📖 คำอธิบายความสามารถและหน้าที่</span>
-              <span id="roleDescToggleIcon" style="font-size: 0.85rem; color: var(--text-dim);">▼</span>
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">📖 คำอธิบายความสามารถ</span>
+              <span id="roleDescToggleIcon" style="font-size: 0.82rem; color: var(--text-dim);">▼</span>
             </div>
-            <div id="myRoleDescContent" style="display: none; margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px;"></div>
+            <div id="myRoleDescContent" style="display: none; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 8px;"></div>
           </div>
 
           <!-- Global Timer Display -->
-          <div id="globalTimerContainer" style="display:none; text-align:center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--accent1);">
-            <div class="timer-text" id="timerText" style="font-size: 3rem; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">00:00</div>
-            <div class="timer-bar" id="timerBarWrap" style="margin-top: 10px;">
+          <div id="globalTimerContainer" style="display:none; text-align:center; padding: 8px 14px; background: rgba(0,0,0,0.45); border-radius: 10px; margin-bottom: 10px; border: 1px solid rgba(255,235,59,0.2);">
+            <div class="timer-text" id="timerText" style="font-size: 2.2rem; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.4);">00:00</div>
+            <div class="timer-bar" id="timerBarWrap" style="margin-top: 6px;">
               <div class="timer-fill" id="timerFill" style="width:100%; background: #ffeb3b;"></div>
             </div>
           </div>
@@ -155,8 +155,10 @@
           <!-- Phase Banner -->
           <div class="phase-banner" id="phaseBanner">
             <div class="phase-icon float" id="phaseIcon">🌙</div>
-            <div class="phase-title" id="phaseTitle">รอผู้เล่น...</div>
-            <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
+            <div class="phase-info">
+              <div class="phase-title" id="phaseTitle">รอผู้เล่น...</div>
+              <div class="phase-subtitle" id="phaseSubtitle">รอผู้เล่นเข้าร่วม</div>
+            </div>
           </div>
 
           <!-- Roles In Play Banner -->
@@ -171,9 +173,9 @@
             <h2 id="winnerTextNative" style="font-size: 2.2rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.3); margin-top: 10px; margin-bottom: 2px;">ฝ่ายดีชนะ!</h2>
             <div class="reason" id="winReasonNative" style="color: var(--text-dim); font-size: 1.15rem; margin-top: 5px; margin-bottom: 22px;">มาเฟียถูกกำจัดหมดแล้ว</div>
             
-            <h3 style="font-size: 1.1rem; font-weight: 700; text-align: left; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: var(--text); display: flex; align-items: center; gap: 8px;">📋 สรุปบทบาทผู้เล่นทั้งหมด</h3>
-            <div class="result-players" id="resultPlayersNative" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 25px; text-align: left;"></div>
-            
+            <h3 style="font-size: 1.1rem; font-weight: 700; text-align: left; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px; color: var(--text); display: flex; align-items: center; gap: 8px;">📜 ประวัติการเสียชีวิต</h3>
+            <div id="deathHistoryNative" style="text-align: left; font-size: 0.88rem; line-height: 1.55; color: var(--text-dim); background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 14px; margin-bottom: 20px; max-height: 220px; overflow-y: auto;"></div>
+
             <div style="display: flex; gap: 12px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
               <button class="btn btn-primary" id="playAgainBtnNative" style="flex: 1.5; min-width: 200px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border: none; font-size: 1.05rem; padding: 12px; font-weight:700;">🔄 เล่นอีกครั้ง (กลับ Lobby)</button>
               <button class="btn" id="leaveRoomBtnNative" style="flex: 1; min-width: 120px; background: #e74c3c; color: white; border: none; font-size: 1.05rem; padding: 12px; font-weight:700;">🚪 ออกจากห้อง</button>
@@ -181,19 +183,19 @@
           </div>
 
           <!-- Action Panel (Moved above Player Grid) -->
-          <div class="action-panel" style="margin: 15px 0; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); border-radius: 14px; padding: 15px; text-align: center;">
+          <div class="action-panel" style="margin: 10px 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; text-align: center;">
             <!-- Vote instruction -->
             <div class="vote-section hidden" id="voteSection" style="margin: 0;">
-              <h3 id="voteTitle" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;">เลือกเป้าหมาย</h3>
-              <button class="btn hidden" id="veteranAlertBtn" style="margin-top: 10px; background: #e91e63; color: white; width: 100%;">🛡️ เปิดการป้องกันตัว</button>
+              <h3 id="voteTitle" style="font-size: 1rem; font-weight: 600; margin-bottom: 4px;">เลือกเป้าหมาย</h3>
+              <button class="btn hidden" id="veteranAlertBtn" style="margin-top: 8px; background: #e91e63; color: white; width: 100%; padding: 10px;">🛡️ เปิดการป้องกันตัว</button>
             </div>
 
             <!-- Skip & Confirm Buttons -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-              <button class="skip-vote-btn hidden" id="skipVoteBtn" style="margin: 0; width: 100%;">⏭️ ข้ามโหวต (ไม่กำจัดใคร)</button>
-              <button class="skip-vote-btn hidden" id="confirmDayVoteBtn" style="background:#2196F3; color:white; margin: 0; width: 100%;">✅ ยืนยันการโหวต</button>
-              <button class="skip-vote-btn hidden" id="skipDiscussBtn" style="background:var(--accent2); color:white; margin: 0; width: 100%;">⏩ โหวตข้ามเวลาพูดคุย</button>
-              <button class="skip-vote-btn hidden" id="confirmNightBtn" style="background:#4caf50; color:white; margin: 0; width: 100%;">✅ ยืนยันการกระทำ</button>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+              <button class="skip-vote-btn hidden" id="skipVoteBtn" style="margin: 0; flex: 1; min-width: 180px;">⏭️ ข้ามโหวต (ไม่กำจัดใคร)</button>
+              <button class="skip-vote-btn hidden" id="confirmDayVoteBtn" style="background:#2196F3; color:white; margin: 0; flex: 1; min-width: 180px;">✅ ยืนยันการโหวต</button>
+              <button class="skip-vote-btn hidden" id="skipDiscussBtn" style="background:var(--accent2); color:white; margin: 0; flex: 1; min-width: 180px;">⏩ โหวตข้ามเวลาพูดคุย</button>
+              <button class="skip-vote-btn hidden" id="confirmNightBtn" style="background:#4caf50; color:white; margin: 0; flex: 1; min-width: 180px;">✅ ยืนยันการกระทำ</button>
             </div>
           </div>
 

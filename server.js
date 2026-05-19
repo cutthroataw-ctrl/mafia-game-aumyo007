@@ -113,6 +113,7 @@ function createRoom(hostId, hostName) {
     timerEnd: null,
     jesterWin: false,
     gameLog: [],
+    deathHistory: [],
     skipDiscussVotes: new Set(),
     nightConfirmations: new Set(),
     dayConfirmations: new Set(),
@@ -145,6 +146,27 @@ function shuffleArray(arr) {
   return shuffled;
 }
 
+/** บทบาทพิเศษแต่ละตัวมีได้ไม่เกิน 1 คน — ถ้าซ้ำจะเปลี่ยนเป็นชาวบ้าน */
+const UNIQUE_SPECIAL_ROLES = [
+  ROLES.DOCTOR,
+  ROLES.DETECTIVE,
+  ROLES.VETERAN,
+  ROLES.SHERIFF,
+  ROLES.MEDIUM,
+  ROLES.CURIOUS,
+  ROLES.JESTER
+];
+
+function dedupeSpecialRoles(roles) {
+  const seen = new Set();
+  return roles.map(role => {
+    if (!UNIQUE_SPECIAL_ROLES.includes(role)) return role;
+    if (seen.has(role)) return ROLES.VILLAGER;
+    seen.add(role);
+    return role;
+  });
+}
+
 function assignRoles(room, customSettings) {
   const playerCount = room.players.size;
   let roles = [];
@@ -156,13 +178,22 @@ function assignRoles(room, customSettings) {
     if (customSettings.randomGoodRoles) {
       const remainingCount = playerCount - roles.length;
       if (remainingCount > 0) {
-        // Guaranteed at least one Detective
-        roles.push(ROLES.DETECTIVE);
-        
-        for (let i = 1; i < remainingCount; i++) {
-          const pool = [ROLES.DOCTOR, ROLES.DETECTIVE, ROLES.VETERAN, ROLES.SHERIFF, ROLES.MEDIUM, ROLES.CURIOUS];
-          const randomRole = pool[Math.floor(Math.random() * pool.length)];
-          roles.push(randomRole);
+        const specialPool = [
+          ROLES.DOCTOR,
+          ROLES.DETECTIVE,
+          ROLES.VETERAN,
+          ROLES.SHERIFF,
+          ROLES.MEDIUM,
+          ROLES.CURIOUS,
+          ROLES.JESTER
+        ];
+        const shuffledSpecial = shuffleArray(specialPool);
+        const pickCount = Math.min(remainingCount, shuffledSpecial.length);
+        for (let i = 0; i < pickCount; i++) {
+          roles.push(shuffledSpecial[i]);
+        }
+        for (let i = 0; i < remainingCount - pickCount; i++) {
+          roles.push(ROLES.VILLAGER);
         }
       }
     } else {
@@ -182,6 +213,10 @@ function assignRoles(room, customSettings) {
     
     if (roles.length > playerCount) {
       roles = roles.slice(0, playerCount);
+    }
+    roles = dedupeSpecialRoles(roles);
+    while (roles.length < playerCount) {
+      roles.push(ROLES.VILLAGER);
     }
   } else {
     // Standard distribution (can be adjusted if needed)
@@ -321,7 +356,7 @@ function emitGameState(room) {
                        room.phase === PHASES.DAY_RESULT ? TIMERS.DAY_RESULT : 0,
         killedPlayers: room.killedPlayers,
         lastEliminated: room.lastEliminated,
-        gameLog: room.gameLog.slice(-10),
+        gameLog: room.gameLog.slice(-50),
         nightVoteCount: room.phase === PHASES.NIGHT_VOTE ? room.nightVotes.size : 0,
         dayVoteCount: room.phase === PHASES.DAY_VOTE ? room.dayVotes.size : 0,
         dayVoteCounts: room.phase === PHASES.DAY_VOTE ? getDayVoteCounts(room) : {},
@@ -342,7 +377,13 @@ function emitGameState(room) {
         veteranUsed: p.role === ROLES.VETERAN ? room.veteranUsed.has(id) : false,
         sheriffUsed: p.role === ROLES.SHERIFF ? room.sheriffUsed.has(id) : false,
         curiousUsed: room.phase === PHASES.NIGHT_VOTE && p.role === ROLES.CURIOUS ? room.curiousCheck !== null : false,
-        rolesInPlay: room.rolesInPlay || []
+        rolesInPlay: room.rolesInPlay || [],
+        deathHistory: room.phase === PHASES.GAME_OVER ? mapDeathHistoryForClient(room.deathHistory) : [],
+        winResult: room.phase === PHASES.GAME_OVER && room.lastWinResult ? {
+          winner: room.lastWinResult.winner,
+          winnerName: FACTION_NAMES_TH[room.lastWinResult.winner],
+          reason: room.lastWinResult.reason
+        } : null
       };
       socket.emit('gameState', payload);
     }
@@ -366,6 +407,8 @@ function startGame(room, customSettings) {
   
   room.round = 0;
   room.gameLog = [];
+  room.deathHistory = [];
+  room.lastWinResult = null;
   room.jesterWin = false;
   room.lastKilled = null;
   room.lastEliminated = null;
@@ -569,9 +612,44 @@ function resolveNight(room) {
       const reveal = room.revealRoleOnDeath !== false;
       const cause = deathCauses.get(id) || 'mafia';
       room.killedPlayers.push({ id, name: victim.name, role: reveal ? victim.role : null, cause: cause });
-      const roleText = reveal ? ` (บทบาท: ${ROLE_NAMES_TH[victim.role] || victim.role})` : '';
-      const causeTh = cause === 'mafia' ? 'ถูกมาเฟียสังหาร' : 'ถูกทหารผ่านศึกป้องกันตัวยิงสวนดับ';
-      addLog(room, `☀️ เช้าวันที่ ${room.round} — ${victim.name} ${causeTh}!${roleText}`);
+      let killerName = null;
+      let killerRole = null;
+      let deathCause = cause;
+      if (cause === 'mafia') {
+        const mafiaVoters = getMafiaVotersForTarget(room, id);
+        if (mafiaVoters.length === 1) {
+          killerName = mafiaVoters[0].name;
+          killerRole = mafiaVoters[0].role;
+        } else if (mafiaVoters.length > 1) {
+          killerName = mafiaVoters.map(m => m.name).join(', ');
+          deathCause = 'mafia_team';
+        }
+      } else if (cause === 'veteran') {
+        let vetId = null;
+        if (id === killedByMafia || room.veteranAlerts.has(killedByMafia)) {
+          vetId = killedByMafia;
+        } else if (room.doctorSave && room.veteranAlerts.has(room.doctorSave)) {
+          vetId = room.doctorSave;
+        } else if (room.detectiveCheck && room.veteranAlerts.has(room.detectiveCheck)) {
+          vetId = room.detectiveCheck;
+        } else if (room.curiousCheck && room.veteranAlerts.has(room.curiousCheck)) {
+          vetId = room.curiousCheck;
+        }
+        const vet = vetId ? room.players.get(vetId) : null;
+        if (vet) {
+          killerName = vet.name;
+          killerRole = vet.role;
+        }
+      }
+      recordDeath(room, {
+        round: room.round,
+        phase: 'night',
+        victimName: victim.name,
+        victimRole: reveal ? victim.role : null,
+        killerName,
+        killerRole,
+        cause: deathCause
+      });
       
       // If killed by mafia (or killed by veteran but also targeted by mafia), let them know who the mafia killer was!
       if (cause === 'mafia' || (cause === 'veteran' && killedByMafia === id)) {
@@ -646,7 +724,7 @@ function resolveNight(room) {
     const target = room.players.get(room.detectiveCheck);
     if (target) {
       for (const [id, p] of room.players) {
-        if (p.role === ROLES.DETECTIVE && p.alive) {
+        if (p.role === ROLES.DETECTIVE && (p.alive || killedIds.has(id))) {
           io.to(id).emit('detectiveResult', {
             targetName: target.name,
             isMafia: target.role === ROLES.MAFIA
@@ -662,7 +740,7 @@ function resolveNight(room) {
     const target = room.players.get(targetId);
     if (target) {
       for (const [curId, curPlayer] of room.players) {
-        if (curPlayer.role === ROLES.CURIOUS && curPlayer.alive) {
+        if (curPlayer.role === ROLES.CURIOUS && (curPlayer.alive || killedIds.has(curId))) {
           const outgoing = visits.filter(v => v.from === targetId);
           const incoming = visits.filter(v => v.to === targetId && v.from !== curId);
           
@@ -760,7 +838,24 @@ function resolveDayVote(room) {
       const reveal = room.revealRoleOnDeath !== false;
       room.lastEliminated = { id: eliminated, name: victim.name, role: reveal ? victim.role : null };
       const roleText = reveal ? ` (${ROLE_NAMES_TH[victim.role] || victim.role})` : '';
-      addLog(room, `⚖️ ${victim.name}${roleText} ถูกโหวตออกจากหมู่บ้าน!`);
+      addLog(room, `☀️ เช้าวันที่ ${room.round} — ${victim.name}${roleText} ถูกโหวตออกจากหมู่บ้าน!`);
+
+      const voters = [];
+      for (const [voterId, targetId] of room.dayVotes) {
+        if (targetId === eliminated) {
+          const voter = room.players.get(voterId);
+          if (voter) voters.push(voter.name);
+        }
+      }
+      recordDeath(room, {
+        round: room.round,
+        phase: 'day_vote',
+        victimName: victim.name,
+        victimRole: reveal ? victim.role : null,
+        killerName: null,
+        cause: 'vote',
+        voters
+      });
       
       // Check if jester was eliminated
       if (victim.role === ROLES.JESTER) {
@@ -796,8 +891,13 @@ function resolveDayVote(room) {
 function endGame(room, winResult) {
   clearRoomTimer(room);
   room.phase = PHASES.GAME_OVER;
-  addLog(room, `🏆 ${winResult.reason}`);
+  room.lastWinResult = winResult;
   
+  addLog(room, buildEndGameSummary(room, winResult));
+  addLog(room, formatDeathHistorySummary(room));
+  
+  const deathHistoryForClient = mapDeathHistoryForClient(room.deathHistory);
+
   for (const [id, p] of room.players) {
     const socket = io.sockets.sockets.get(id);
     if (socket) {
@@ -806,6 +906,7 @@ function endGame(room, winResult) {
         winnerName: FACTION_NAMES_TH[winResult.winner],
         reason: winResult.reason,
         isWinner: p.faction === winResult.winner,
+        deathHistory: deathHistoryForClient,
         players: Array.from(room.players.values()).map(pl => ({
           name: pl.name,
           role: pl.role,
@@ -826,6 +927,145 @@ function addLog(room, message) {
     time: Date.now(),
     message
   });
+}
+
+function getMafiaVotersForTarget(room, targetId) {
+  const voters = [];
+  for (const [voterId, tid] of room.nightVotes) {
+    if (tid === targetId) {
+      const voter = room.players.get(voterId);
+      if (voter && voter.role === ROLES.MAFIA) voters.push(voter);
+    }
+  }
+  return voters;
+}
+
+function mapDeathHistoryForClient(deathHistory) {
+  return deathHistory.map((d, i) => ({
+    index: i + 1,
+    round: d.round,
+    phase: d.phase,
+    victimName: d.victimName,
+    victimRoleName: d.victimRole ? ROLE_NAMES_TH[d.victimRole] : null,
+    killerName: d.killerName,
+    cause: d.cause,
+    voters: d.voters || []
+  }));
+}
+
+function recordDeath(room, entry) {
+  room.deathHistory.push({
+    time: Date.now(),
+    round: entry.round,
+    phase: entry.phase,
+    victimName: entry.victimName,
+    victimRole: entry.victimRole,
+    killerName: entry.killerName || null,
+    killerRole: entry.killerRole || null,
+    cause: entry.cause,
+    voters: entry.voters || []
+  });
+}
+
+function formatDeathHistorySummary(room) {
+  if (!room.deathHistory.length) {
+    return '📜 [ประวัติการเสียชีวิต] ไม่มีผู้เสียชีวิตตลอดทั้งเกม';
+  }
+
+  const lines = ['📜 [ประวัติการเสียชีวิต — เรียงตามลำดับเวลา]'];
+  room.deathHistory.forEach((d, i) => {
+    const roleText = d.victimRole ? ` [${ROLE_NAMES_TH[d.victimRole] || d.victimRole}]` : '';
+    let whenLabel = '';
+    if (d.phase === 'night') whenLabel = `🌙 คืนที่ ${d.round}`;
+    else if (d.phase === 'day_vote') whenLabel = `☀️ เช้าวันที่ ${d.round} (โหวตกลางวัน)`;
+    else if (d.phase === 'day_sheriff') whenLabel = `☀️ เช้าวันที่ ${d.round} (นายอำเภอยิง)`;
+    else whenLabel = `รอบที่ ${d.round}`;
+
+    let actionText = '';
+    switch (d.cause) {
+      case 'mafia':
+        actionText = d.killerName
+          ? `ถูกมาเฟีย "${d.killerName}" สังหาร 🔪`
+          : 'ถูกมาเฟียสังหาร 🔪';
+        break;
+      case 'mafia_team':
+        actionText = d.killerName
+          ? `ถูกมาเฟีย (${d.killerName}) ร่วมกันสังหาร 🔪`
+          : 'ถูกมาเฟียสังหาร 🔪';
+        break;
+      case 'veteran':
+        actionText = d.killerName
+          ? `ถูกทหารผ่านศึก "${d.killerName}" ยิงสวนดับ 🎖️`
+          : 'ถูกทหารผ่านศึกยิงสวนดับ 🎖️';
+        break;
+      case 'vote':
+        actionText = d.voters.length
+          ? `ถูกหมู่บ้านโหวตกำจัด 🗳️ (โหวตโดย: ${d.voters.join(', ')})`
+          : 'ถูกหมู่บ้านโหวตกำจัด 🗳️';
+        break;
+      case 'sheriff':
+        actionText = d.killerName
+          ? `ถูกนายอำเภอ "${d.killerName}" ยิง 🤠`
+          : 'ถูกนายอำเภอยิง 🤠';
+        break;
+      case 'sheriff_backfire':
+        actionText = d.killerName
+          ? `นายอำเภอ "${d.killerName}" ยิงผิดคน จึงตายตาม 💔`
+          : 'นายอำเภอยิงผิดคน จึงตายตาม 💔';
+        break;
+      default:
+        actionText = 'เสียชีวิต';
+    }
+
+    lines.push(`${i + 1}. ${whenLabel} — 💀 ${d.victimName}${roleText} ${actionText}`);
+  });
+  return lines.join('\n');
+}
+
+function buildEndGameSummary(room, winResult) {
+  return `🏆 [สรุปผลการแข่งขัน] ${winResult.reason}`;
+}
+
+function removePlayerFromRoom(room, playerId, { kicked = false } = {}) {
+  const player = room.players.get(playerId);
+  if (!player) return false;
+
+  const playerSocket = io.sockets.sockets.get(playerId);
+  if (playerSocket) {
+    playerSocket.leave(room.code);
+    if (kicked) {
+      playerSocket.emit('kicked', { message: 'คุณถูกเตะออกจากห้องโดยเจ้าห้อง' });
+    }
+  }
+
+  if (kicked) {
+    addLog(room, `🚫 ${player.name} ถูกเตะออกจากห้อง`);
+  } else {
+    addLog(room, `📢 ${player.name} ออกจากห้อง`);
+  }
+
+  room.players.delete(playerId);
+
+  if (room.players.size === 0) {
+    clearRoomTimer(room);
+    rooms.delete(room.code);
+    return true;
+  }
+
+  if (playerId === room.hostId) {
+    room.hostId = room.players.keys().next().value;
+  }
+
+  if (room.phase !== PHASES.LOBBY && room.phase !== PHASES.GAME_OVER) {
+    const winResult = checkWinCondition(room);
+    if (winResult) {
+      endGame(room, winResult);
+      return true;
+    }
+  }
+
+  emitGameState(room);
+  return true;
 }
 
 // ================== SOCKET HANDLERS ==================
@@ -906,6 +1146,30 @@ io.on('connection', (socket) => {
     }
 
     startGame(room, customSettings);
+  });
+
+  socket.on('kickPlayer', ({ targetId }) => {
+    if (!currentRoom) return;
+    const room = rooms.get(currentRoom);
+    if (!room) return;
+    if (socket.id !== room.hostId) {
+      socket.emit('error', { message: 'เฉพาะเจ้าห้องเท่านั้นที่เตะผู้เล่นได้' });
+      return;
+    }
+    if (room.phase !== PHASES.LOBBY) {
+      socket.emit('error', { message: 'เตะผู้เล่นได้เฉพาะตอนรอในห้อง' });
+      return;
+    }
+    if (!targetId || targetId === socket.id) {
+      socket.emit('error', { message: 'ไม่สามารถเตะตัวเองได้' });
+      return;
+    }
+    if (!room.players.has(targetId)) {
+      socket.emit('error', { message: 'ไม่พบผู้เล่นในห้อง' });
+      return;
+    }
+
+    removePlayerFromRoom(room, targetId, { kicked: true });
   });
 
   socket.on('skipDiscuss', () => {
@@ -1048,7 +1312,29 @@ io.on('connection', (socket) => {
       msg += `\n💔 อนิจจา! ${target.name} เป็นคนดี นายอำเภอ ${player.name} จึงตรอมใจตายตามไปด้วย!`;
     }
     
-    addLog(room, msg);
+    addLog(room, `☀️ เช้าวันที่ ${room.round} — นายอำเภอ ${player.name} ใช้ปืนในหมู่บ้าน!`);
+
+    const reveal = room.revealRoleOnDeath !== false;
+    recordDeath(room, {
+      round: room.round,
+      phase: 'day_sheriff',
+      victimName: target.name,
+      victimRole: reveal ? target.role : null,
+      killerName: player.name,
+      killerRole: player.role,
+      cause: 'sheriff'
+    });
+    if (target.faction === FACTIONS.GOOD) {
+      recordDeath(room, {
+        round: room.round,
+        phase: 'day_sheriff',
+        victimName: player.name,
+        victimRole: reveal ? player.role : null,
+        killerName: target.name,
+        killerRole: target.role,
+        cause: 'sheriff_backfire'
+      });
+    }
     
     // Broadcast message to everyone
     io.to(currentRoom).emit('chatMessage', {
@@ -1133,7 +1419,8 @@ io.on('connection', (socket) => {
     if (!room) return;
 
     room.phase = PHASES.LOBBY;
-    room.gameLog = [];
+    room.deathHistory = [];
+    room.lastWinResult = null;
     room.jesterWin = false;
     room.veteranUsed.clear();
     room.sheriffUsed.clear();
@@ -1255,35 +1542,9 @@ io.on('connection', (socket) => {
     if (!currentRoom) return;
     const room = rooms.get(currentRoom);
     if (!room) return;
+    if (!room.players.has(socket.id)) return;
 
-    const player = room.players.get(socket.id);
-    if (player) {
-      addLog(room, `📢 ${player.name} ออกจากห้อง`);
-    }
-
-    room.players.delete(socket.id);
-
-    if (room.players.size === 0) {
-      clearRoomTimer(room);
-      rooms.delete(currentRoom);
-      return;
-    }
-
-    // Transfer host if host left
-    if (socket.id === room.hostId) {
-      room.hostId = room.players.keys().next().value;
-    }
-
-    // If game is running, mark as dead
-    if (room.phase !== PHASES.LOBBY) {
-      const winResult = checkWinCondition(room);
-      if (winResult) {
-        endGame(room, winResult);
-        return;
-      }
-    }
-
-    emitGameState(room);
+    removePlayerFromRoom(room, socket.id);
   });
 });
 
