@@ -1025,6 +1025,14 @@ function renderPlayers(state) {
     if (state.phase === 'night_vote' && state.myRole === 'mafia' && p.isMafiaTeam) {
       isVotable = false;
     }
+    
+    // During day_discuss, Sheriff can shoot but cannot vote, so the card itself should not be clickable.
+    // During day_vote, Sheriff can vote by clicking the card just like regular citizens.
+    const isSheriffWithShoot = (state.myRole === 'sheriff' && state.myAlive && !state.sheriffUsed && ['day_discuss', 'day_vote'].includes(state.phase));
+    if (isSheriffWithShoot && state.phase === 'day_discuss') {
+      isVotable = false;
+    }
+
     if (isVotable) classes += ' votable';
     if (currentVote === p.id) classes += ' voted pulse';
     
@@ -1047,7 +1055,7 @@ function renderPlayers(state) {
 
     // Playful interactive action helpers to guide player clicks
     let helperBadge = '';
-    if (isVotable) {
+    if (isVotable && !isSheriffWithShoot) {
       if (state.phase === 'day_vote') {
         helperBadge = `<div class="action-helper-badge" style="background:#e74c3c; box-shadow:0 0 10px rgba(231,76,60,0.55);">🗳️ โหวต</div>`;
       } else if (state.phase === 'night_vote') {
@@ -1073,6 +1081,11 @@ function renderPlayers(state) {
       <div class="avatar" style="font-size: 1.4rem; margin-top: 6px;">${AVATARS[p.avatar] || '😎'}</div>
     `;
 
+    // Dedicated actions container at the bottom of the card for multi-action scenarios or host kick
+    const actionsContainer = document.createElement('div');
+    actionsContainer.className = 'card-actions';
+    actionsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 8px; z-index: 5;';
+
     // Host kick button (lobby only)
     if (state.isHost && state.phase === 'lobby' && p.id !== socket.id) {
       const kickBtn = document.createElement('button');
@@ -1085,22 +1098,29 @@ function renderPlayers(state) {
           socket.emit('kickPlayer', { targetId: p.id });
         }
       };
-      card.appendChild(kickBtn);
+      actionsContainer.appendChild(kickBtn);
     }
 
-    // Sheriff Shoot Button
-    if (state.myRole === 'sheriff' && state.myAlive && !state.sheriffUsed && ['day_discuss', 'day_vote'].includes(state.phase) && p.alive && p.id !== socket.id) {
+    // Sheriff Special Shoot Button (no separate vote button, vote by clicking card)
+    if (isSheriffWithShoot && p.alive && p.id !== socket.id) {
       const shootBtn = document.createElement('button');
-      shootBtn.className = 'btn';
-      shootBtn.style.cssText = 'background: #ff9800; color: white; padding: 4px 8px; font-size: 0.8rem; margin-top: 5px; width: 100%; border:none; border-radius:4px; cursor:pointer;';
+      shootBtn.className = 'sheriff-shoot-btn';
+      shootBtn.style.cssText = 'background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 6px 10px; font-size: 0.78rem; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-family:Kanit; box-shadow: 0 2px 8px rgba(255,152,0,0.4); transition: all 0.2s; width: 100%;';
       shootBtn.textContent = '🔫 ยิง';
+      shootBtn.onmouseenter = () => { shootBtn.style.transform = 'scale(1.03)'; shootBtn.style.boxShadow = '0 4px 12px rgba(255,152,0,0.6)'; };
+      shootBtn.onmouseleave = () => { shootBtn.style.transform = 'scale(1)'; shootBtn.style.boxShadow = '0 2px 8px rgba(255,152,0,0.4)'; };
       shootBtn.onclick = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         if (confirm(`คุณแน่ใจหรือไม่ว่าจะยิง ${p.name}? (ใช้ได้ครั้งเดียว)`)) {
           socket.emit('sheriffShoot', { targetId: p.id });
         }
       };
-      card.appendChild(shootBtn);
+      actionsContainer.appendChild(shootBtn);
+    }
+
+    if (actionsContainer.hasChildNodes()) {
+      card.appendChild(actionsContainer);
     }
 
     if (isVotable) {
